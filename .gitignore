@@ -1,0 +1,9 @@
+# .NET Build Results
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio user files
+.suo
+.user
+.userosscache
+.sln.docstates

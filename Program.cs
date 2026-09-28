@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using CrudOperation.Data;
+using CrudOperation.Service;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
@@ -12,6 +13,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         )
     )
 );
+builder.Services.AddScoped<IOtpService, OtpService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>

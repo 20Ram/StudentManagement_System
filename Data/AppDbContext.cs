@@ -10,5 +10,7 @@ namespace CrudOperation.Data
       
     }
     public DbSet<Student> Students{get; set;}
+    public DbSet<User> Users{get; set;}
+    public DbSet<OtpVerification> OtpVerifications{get; set;}
   }
 }
