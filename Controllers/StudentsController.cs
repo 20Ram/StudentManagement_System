@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using CrudOperation.Data;
 using CrudOperation.DTOs;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+
 
 namespace CrudOperation.Controllers
 {
@@ -70,7 +72,7 @@ namespace CrudOperation.Controllers
       _context.SaveChanges();
       return Ok(existingStudent);
     }
-    // [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
 
     public IActionResult DeleteStudent(int id)
@@ -84,14 +86,32 @@ namespace CrudOperation.Controllers
       _context.SaveChanges();
       return Ok(removeStudent);
     }
-    [Authorize(Roles = "Admin")]
-    [HttpGet("admin")]
-    public IActionResult AdminOnly()
+    
+    [Authorize(Roles = "Student")]
+    [HttpGet("profile")]
+    public async Task<IActionResult> Profile()
     {
-      return Ok(new
+      var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+
+      var student = await _context.Users
+        .Where(u => u.Email == email && u.Roll == "Student")
+        .Select(u => new
+        {
+            u.Id,
+            u.Name,
+            u.Email,
+            u.Roll
+        }).FirstOrDefaultAsync();
+
+      if (student == null)
       {
-        message = "Welcome Admin!"
-      });
+        return NotFound(new
+        {
+            message = "Student profile not found"
+        });
+      }
+
+      return Ok(student);
     }
   } 
 }

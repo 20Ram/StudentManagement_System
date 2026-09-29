@@ -18,7 +18,7 @@ namespace CrudOperation.Service
     public string GenerateToken(User user)
     {
       var JwtSettings = _configuration.GetSection("JwtSettings");
-      var secretKey = JwtSettings.GetValue<string>("SecretKey");
+      var secretKey = JwtSettings["SecretKey"];
       var key =  new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
       var credentials = new SigningCredentials(key,SecurityAlgorithms.HmacSha256);
 
