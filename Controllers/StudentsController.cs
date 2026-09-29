@@ -2,11 +2,13 @@ using CrudOperation.Models;
 using Microsoft.AspNetCore.Mvc;
 using CrudOperation.Data;
 using CrudOperation.DTOs;
+using Microsoft.AspNetCore.Authorization;
 
 namespace CrudOperation.Controllers
 {
  [ApiController]
  [Route("api/[controller]")]
+ [Authorize]
  public class StudentsController : ControllerBase
   {
     private readonly AppDbContext _context;
@@ -68,7 +70,7 @@ namespace CrudOperation.Controllers
       _context.SaveChanges();
       return Ok(existingStudent);
     }
-
+    // [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
 
     public IActionResult DeleteStudent(int id)
@@ -81,6 +83,15 @@ namespace CrudOperation.Controllers
       _context.Students.Remove(removeStudent);
       _context.SaveChanges();
       return Ok(removeStudent);
+    }
+    [Authorize(Roles = "Admin")]
+    [HttpGet("admin")]
+    public IActionResult AdminOnly()
+    {
+      return Ok(new
+      {
+        message = "Welcome Admin!"
+      });
     }
   } 
 }

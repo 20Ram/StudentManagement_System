@@ -9,6 +9,7 @@ namespace CrudOperation.DTOs
     [Required]
     [EmailAddress]
     public string Email {get; set;} = string.Empty;
+    [Required]
     public string Roll {get; set;}  = string.Empty;
   }
 }
