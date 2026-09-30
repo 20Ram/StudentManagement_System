@@ -38,7 +38,7 @@ namespace CrudOperation.Controllers
       }
       return Ok(student);
     }
-
+    [Authorize(Roles ="Admin")]
     [HttpPost]
     public IActionResult CreateStudent(CreateStudentDto dto)
     {

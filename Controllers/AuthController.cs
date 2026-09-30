@@ -67,6 +67,21 @@ namespace CrudOperation.Controllers
 
                 _context.Users.Add(user);
                 await _context.SaveChangesAsync();
+                if(dto.Roll == "Student")
+                {
+                    var student = new Student
+                    {  
+                        UserId = user.Id,
+                        Name = dto.Name.Trim(),
+                        Email = user.Email,
+                        Age = dto.Age ?? 0,
+                        Course = dto.Course,
+                        Marks = dto.Marks ?? 0
+
+                    };
+                    _context.Students.Add(student);
+                    await _context.SaveChangesAsync();
+                }
             }
             else
             {

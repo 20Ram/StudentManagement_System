@@ -1,5 +1,7 @@
 using CrudOperation.Data;
 using CrudOperation.DTOs;
+using CrudOperation.Service;
+using CrudOperation.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,9 +16,13 @@ namespace  CrudOperation.Controllers
   public class AdminController : ControllerBase
   {
     private readonly AppDbContext _context;
-    public AdminController(AppDbContext context)
+    private readonly IEmailService _emailService;
+    private readonly IOtpService _otpService;
+    public AdminController(AppDbContext context,IEmailService emailService,IOtpService otpService )
     {
       _context = context;
+      _emailService = emailService;
+      _otpService = otpService;
     }
 
     [HttpGet("dashboard")]
@@ -93,5 +99,100 @@ namespace  CrudOperation.Controllers
                 role = user.Roll
             });
       }
+      [HttpDelete("{id}")]
+      public async Task<IActionResult> DeleteUser(int id)
+      {
+      var removeUser = _context.Users.FirstOrDefault(s => s.Id == id);
+      if (removeUser == null)
+      {
+        return NotFound(removeUser);
+      }
+      _context.Users.Remove(removeUser);
+      await _context.SaveChangesAsync();
+      return Ok(removeUser);
+    }
+    
+    [HttpPost("create-user")]
+    public async Task<IActionResult> CreateUser(CreateStudentDto dto)
+        {
+            var allowedRoles = new[] { "Student", "Teacher" };
+
+            if (!allowedRoles.Contains(dto.Roll))
+            {
+               return BadRequest(new
+               {
+                 message = "Invalid role."
+             });
+           }
+            var email = dto.Email.Trim().ToLowerInvariant();
+
+            var existingUser = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == email);
+
+            if (existingUser != null && existingUser.IsEmailVerified)
+            {
+                return BadRequest(new
+                {
+                    message = "Email is already registered."
+                });
+            }
+
+            if (existingUser == null)
+            {
+                var user = new User
+                {
+                    Name = dto.Name.Trim(),
+                    Email = email,
+                    Roll = dto.Roll,
+                    IsEmailVerified = false
+                };
+
+                _context.Users.Add(user);
+                await _context.SaveChangesAsync();
+                if(dto.Roll == "Student")
+                {
+                    var student = new Student
+                    {  
+                        UserId = user.Id,
+                        Name = dto.Name.Trim(),
+                        Email = user.Email,
+                        Age = dto.Age,
+                        Course = dto.Course,
+                        Marks = dto.Marks
+                    };
+                    _context.Students.Add(student);
+                    await _context.SaveChangesAsync();
+                }
+            }
+            else
+            {
+                existingUser.Name = dto.Name.Trim();
+                await _context.SaveChangesAsync();
+            }
+
+            var otp = await _otpService.GenerateOtpAsync(email);
+
+            await _emailService.SendEmailAsync(
+                email,
+                "Student Management System - Email Verification",
+                $"""
+                Hello {dto.Name},
+
+                Your OTP is: {otp}
+
+                This OTP will expire in 5 minutes.
+
+                Please do not share this OTP with anyone.
+
+                Regards,
+                Student Management System
+                """
+            );
+
+            return Ok(new
+            {
+                message = "OTP sent successfully to your email."
+            });
+        }
   }
 }
