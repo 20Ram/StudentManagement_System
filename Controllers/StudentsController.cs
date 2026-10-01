@@ -4,13 +4,11 @@ using CrudOperation.Data;
 using CrudOperation.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
-
-
 namespace CrudOperation.Controllers
 {
  [ApiController]
  [Route("api/[controller]")]
- [Authorize]
+ [Authorize(Roles = "Student")]
  public class StudentsController : ControllerBase
   {
     private readonly AppDbContext _context;
@@ -20,79 +18,83 @@ namespace CrudOperation.Controllers
       _context = context;
     } 
 
-    [HttpGet]
-    public IActionResult GetAllStudents()
-    {
-      var students = _context.Students.ToList();
-      return Ok(students);
-    }
+    [HttpPut("Update-student")]
+    public async Task<IActionResult> UpdateStudent(UpdateStudentDto dto)
+    { 
+      var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
 
-    [HttpGet("{id}")]
-    public IActionResult GetStudent(int id)
-    {
-      var student = _context.Students.FirstOrDefault(s => s.Id == id);
+      if (string.IsNullOrEmpty(email))
+      {
+        return Unauthorized(new
+        {
+            message = "Email claim missing from token"
+        });
+      }
+ 
+      var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+
+      if (user == null)
+      {
+        return NotFound(new
+        {
+            message = "User not found"
+        });
+      }
+      var student = await _context.Students.FirstOrDefaultAsync(s => s.UserId == user.Id);
 
       if (student == null)
       {
-        return NotFound(student);
+        return NotFound(new
+        {
+            message = "Student record not found"
+        });
       }
-      return Ok(student);
-    }
-    [Authorize(Roles ="Admin")]
-    [HttpPost]
-    public IActionResult CreateStudent(CreateStudentDto dto)
-    {
-      var student = new Student
-      {
-        Name = dto.Name,
-        Email = dto.Email,
-        Age = dto.Age,
-        Course = dto.Course,
-        Marks = dto.Marks
-      };
-      _context.Students.Add(student);
-      _context.SaveChanges();
-      return Ok(student);
-    }
-    
-    [HttpPut("{id}")]
-    public IActionResult UpdateStudent(int id,UpdateStudentDto dto)
-    {
-      var existingStudent = _context.Students.FirstOrDefault(s => s.Id == id);
-      if (existingStudent == null)
-      {
-        return NotFound(existingStudent);
-      }
-      existingStudent.Name = dto.Name;
-      existingStudent.Age = dto.Age;
-      existingStudent.Email = dto.Email;
-      existingStudent.Course = dto.Course;
-      existingStudent.Marks = dto.Marks;
-      
-      _context.SaveChanges();
-      return Ok(existingStudent);
-    }
-    [Authorize(Roles = "Admin")]
-    [HttpDelete("{id}")]
 
-    public IActionResult DeleteStudent(int id)
-    {
-      var removeStudent = _context.Students.FirstOrDefault(s => s.Id == id);
-      if (removeStudent == null)
+      if (!string.IsNullOrWhiteSpace(dto.Name))
       {
-        return NotFound(removeStudent);
+        user.Name = dto.Name;
+        student.Name = dto.Name;
       }
-      _context.Students.Remove(removeStudent);
-      _context.SaveChanges();
-      return Ok(removeStudent);
+
+      if (!string.IsNullOrWhiteSpace(dto.Email))
+      {
+        user.Email = dto.Email;
+        student.Email = dto.Email;
+      }
+
+      if (dto.Age.HasValue)
+      {
+        student.Age = dto.Age.Value;
+      }
+
+      if (!string.IsNullOrWhiteSpace(dto.Course))
+      {
+        student.Course = dto.Course;
+      }
+
+      if (dto.Marks.HasValue)
+      {
+        student.Marks = dto.Marks.Value;
+      }
+ 
+      await _context.SaveChangesAsync();
+      return Ok(new
+      {
+        student = new
+        {
+            user.Id,
+            user.Name,
+            user.Email,
+            student.Age,
+            student.Course,
+            student.Marks
+        }
+      });
     }
-    
-    [Authorize(Roles = "Student")]
-    [HttpGet("profile")]
+    [HttpGet("student-profile")]
     public async Task<IActionResult> Profile()
     {
       var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
-
       var student = await _context.Users
         .Where(u => u.Email == email && u.Roll == "Student")
         .Select(u => new
@@ -101,6 +103,15 @@ namespace CrudOperation.Controllers
             u.Name,
             u.Email,
             u.Roll
+            
+        }).FirstOrDefaultAsync();
+         var students = await _context.Students
+        .Where(s => s.Email == email)
+        .Select(s => new
+        {
+            s.Age,
+            s.Course,
+            s.Marks,
         }).FirstOrDefaultAsync();
 
       if (student == null)
@@ -110,8 +121,16 @@ namespace CrudOperation.Controllers
             message = "Student profile not found"
         });
       }
-
-      return Ok(student);
+      return Ok(new
+      {
+        student.Id,
+        student.Email,
+        student.Name,
+        student.Roll,
+        students.Age,
+        students.Course,
+        students.Marks
+      });
     }
   } 
 }

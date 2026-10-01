@@ -5,12 +5,6 @@ namespace CrudOperation.Service
 {
   public class EmailService : IEmailService
   {
-    // private readonly AppDbContext _context;
-    // public EmailService(AppDbContext context)
-    // {
-    //   _context = context;
-    // }
-
     private readonly IConfiguration _configuration;
 
         public EmailService(IConfiguration configuration)
