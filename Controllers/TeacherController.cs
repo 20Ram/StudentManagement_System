@@ -42,9 +42,8 @@ namespace CrudOperation.Controllers
         }
  
         [HttpGet("student")]
-        public async Task<IActionResult> GetStudent()
+        public async Task<IActionResult> GetStudent(string email)
         {
-            var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
             var student = await _context.Users
                 .Where(u => u.Email == email && u.Roll == "Student")
                 .Select(u => new
@@ -64,14 +63,18 @@ namespace CrudOperation.Controllers
                     s.Marks,   
                 })
                 .FirstOrDefaultAsync();
-            if (student == null)
+            if (student == null || students == null )
             {
                 return NotFound(new
                 {
                     message = "Student not found"
                 });
             }
-            return Ok(student);
+            return Ok(new
+            {
+              student,
+              students
+            });
         }
         
         [HttpGet("teacher-profile")]
@@ -95,7 +98,7 @@ namespace CrudOperation.Controllers
                   t.Department,
                 }).FirstOrDefaultAsync();
 
-            if (teacher == null)
+            if (teacher == null ||teachers == null )
             {
                return NotFound(new
                {
@@ -116,7 +119,7 @@ namespace CrudOperation.Controllers
         [HttpPut("Update-student{email}")]
         public async Task<IActionResult> UpdateStudent(string email,UpdateStudentDto dto)
     { 
-    //   var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+    
 
       if (string.IsNullOrEmpty(email))
       {
