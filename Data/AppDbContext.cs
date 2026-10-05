@@ -13,6 +13,8 @@ namespace CrudOperation.Data
     public DbSet<User> Users{get; set;}
     public DbSet<OtpVerification> OtpVerifications{get; set;}
     public DbSet<Teacher> Teachers {get; set;}
+    public DbSet<Document> Documents {get; set;}
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
     modelBuilder.Entity<User>()
@@ -23,7 +25,12 @@ namespace CrudOperation.Data
     modelBuilder.Entity<User>()
         .HasOne(u => u.Teacher)
         .WithOne(t => t.User)
-        .HasForeignKey<Teacher>(t => t.UserId);   
+        .HasForeignKey<Teacher>(t => t.UserId);  
+
+    modelBuilder.Entity<Student>()
+        .HasMany(s => s.Documents)
+        .WithOne(d => d.student)
+        .HasForeignKey(d => d.StudentId);
     }
   }
 }

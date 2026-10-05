@@ -9,6 +9,7 @@ namespace CrudOperation.Models
     public int Age {get; set;}
     public string Course {get; set;} 
     public double Marks {get; set;}
-    public User User {get; set;}
+    public User? User {get; set;}
+    public ICollection<Document> Documents {get; set;} = new List<Document>();
   }
 }
