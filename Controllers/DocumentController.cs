@@ -100,5 +100,31 @@ namespace CrudOperation.Controllers
       } 
       return (userId, roleClaim); 
     } 
+    [Authorize(Roles = "Admin,Student")]
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+     try
+      {
+        var userInfo = GetCurrentUser();
+
+        if (userInfo == null)
+        {  return Unauthorized();}
+
+        await _documentService.DeleteAsync(id,userInfo.Value.UserId,userInfo.Value.Role);
+
+        return Ok(new
+        {
+            message = "Document deleted successfully."
+        });
+      }
+      catch (Exception ex)
+      {
+        return BadRequest(new
+        {
+            message = ex.Message
+        });
+      }
+    }
   }  
 }

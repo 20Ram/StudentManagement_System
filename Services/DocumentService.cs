@@ -142,39 +142,87 @@ namespace CrudOperation.Service
         document.ContentType,
         document.FileName
       );
-  }
-  public async Task<List<DocumentResponseDto>> GetByStudentIdAsync(int studentId,int userId, string roll)
-  {  
-    var document = await _context.Documents
+    }
+    public async Task<List<DocumentResponseDto>> GetByStudentIdAsync(int studentId,int userId,   string roll)
+    {  
+      var document = await _context.Documents
                    .FirstOrDefaultAsync( s => s.Id == studentId);
                    
 
-    if (roll.Equals( "Student", StringComparison.OrdinalIgnoreCase)) 
-    { 
-      if (document.UserId != userId) 
+      if (roll.Equals( "Student", StringComparison.OrdinalIgnoreCase)) 
       { 
-        throw new UnauthorizedAccessException( "Students can only view their own documents."); 
-      } 
-    }
+        if (document.UserId != userId) 
+        { 
+          throw new UnauthorizedAccessException( "Students can only view their own documents."); 
+        } 
+      }
 
-    var documents = await _context.Documents 
+      var documents = await _context.Documents 
                     .Where(d => d.StudentId == studentId) 
                     .OrderByDescending( d => d.UploadedAt) 
                     .ToListAsync();
     
-    return documents.Select(d => new DocumentResponseDto
+      return documents.Select(d => new DocumentResponseDto
+      {
+        Id = d.Id,
+        StudentId = d.StudentId,
+        UploadUserId = d.UserId,
+        FileName = d.FileName,
+        ContentType = d.ContentType,
+        FileSize = d.FileSize,
+        UploadedAt = d.UploadedAt,
+        ViewUrl = $"/api/documents/{d.Id}/view",
+        DownloadUrl = $"/api/documents/{d.Id}/download"
+      }).ToList();  
+    }
+    public async Task DeleteAsync(int documentId,int userId,string roll)
     {
-      Id = d.Id,
-      StudentId = d.StudentId,
-      UploadUserId = d.UserId,
-      FileName = d.FileName,
-      ContentType = d.ContentType,
-      FileSize = d.FileSize,
-      UploadedAt = d.UploadedAt,
-      ViewUrl = $"/api/documents/{d.Id}/view",
-      DownloadUrl = $"/api/documents/{d.Id}/download"
-    }).ToList();
-      
+      var document = await _context.Documents
+        .Include(d => d.student)
+        .FirstOrDefaultAsync(d => d.Id == documentId);
+
+      if (document == null)
+      {  
+        throw new Exception("Document not found.");
+      }
+
+      if (roll.Equals("Teacher", StringComparison.OrdinalIgnoreCase))
+      {    
+        throw new UnauthorizedAccessException(
+        "Teachers cannot delete documents.");
+      }
+
+      if (roll.Equals("Student", StringComparison.OrdinalIgnoreCase))
+      {
+        if (document.student == null ||
+            document.student.UserId != userId)
+        {
+            throw new UnauthorizedAccessException(
+                "You can only delete your own documents.");
+        }
+      }
+
+      var webRootPath = _environment.WebRootPath;
+
+      if (string.IsNullOrEmpty(webRootPath))
+      {
+        webRootPath = Path.Combine(
+            _environment.ContentRootPath,
+            "wwwroot");
+      }
+
+      var filePath = Path.Combine(
+        webRootPath,
+        "uploads",
+        "documents",
+        document.StoredFileName);
+
+      if (File.Exists(filePath))
+        File.Delete(filePath);
+
+      _context.Documents.Remove(document);
+
+      await _context.SaveChangesAsync();
+    }
   }
-}
 }
