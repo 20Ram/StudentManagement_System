@@ -9,5 +9,6 @@ namespace CrudOperation.Models
     public bool IsEmailVerified { get; set; }
     public Student? Student {get; set;}
     public Teacher? Teacher {get; set;}
+    public ICollection<Document> UploadDocuments {get; set;} = new List<Document>();
   }
 }

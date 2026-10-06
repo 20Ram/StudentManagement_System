@@ -31,6 +31,12 @@ namespace CrudOperation.Data
         .HasMany(s => s.Documents)
         .WithOne(d => d.student)
         .HasForeignKey(d => d.StudentId);
+
+    modelBuilder.Entity<User>()
+        .HasMany(u => u.UploadDocuments)
+        .WithOne(d => d.userUploaded)
+        .HasForeignKey(d => d.UserId)
+        .OnDelete(DeleteBehavior.Restrict);
     }
   }
 }

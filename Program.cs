@@ -23,7 +23,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<IOtpService, OtpService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
-builder.Services.AddScoped<IDocumentService, DoumentService>();
+builder.Services.AddScoped<IDocumentService, DocumentService>();
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["SecretKey"];

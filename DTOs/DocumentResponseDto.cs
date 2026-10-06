@@ -5,6 +5,7 @@ namespace CrudOperation.DTOs
     public int Id { get; set; }
 
     public int StudentId { get; set; }
+    public int UploadUserId { get; set; }
 
     public string FileName { get; set; } 
 

@@ -1,23 +1,20 @@
 using CrudOperation.Data;
 using CrudOperation.DTOs;
 using CrudOperation.Models;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Org.BouncyCastle.Utilities;
-
 namespace CrudOperation.Service
 {
-  public class DoumentService : IDocumentService
+  public class DocumentService : IDocumentService
   {
     private readonly AppDbContext _context;
     private readonly IWebHostEnvironment _environment;
 
-    public DoumentService(AppDbContext context, IWebHostEnvironment environment)
+    public DocumentService(AppDbContext context, IWebHostEnvironment environment)
     {
       _context = context;
       _environment = environment;
     }
-    public async Task<DocumentResponseDto> UploadAsync(DocumentUploadDto dto)
+    public async Task<DocumentResponseDto> UploadAsync(DocumentUploadDto dto,int userId,string roll)
     {
       var student =await _context.Students.FindAsync(dto.StudentId);
       if(student == null)
@@ -48,6 +45,18 @@ namespace CrudOperation.Service
       {
         throw new Exception ("File Size is More than 5 MB.");
       }
+      
+      if (student == null) 
+      { 
+        throw new Exception("Student not found."); 
+      }
+       
+      if (roll.Equals("Student", StringComparison.OrdinalIgnoreCase)) 
+      { if (student.UserId != userId) 
+        { 
+          throw new UnauthorizedAccessException( "Students can only upload their own documents."); 
+        }
+      }
 
       var uploadFolder = Path.Combine(_environment.WebRootPath,"Uploads","Documents");
       if (!Directory.Exists(uploadFolder))
@@ -69,6 +78,7 @@ namespace CrudOperation.Service
       {
         StudentId = dto.StudentId,
         FileName = dto.File.FileName,
+        UserId = userId,
         StoredFileName = storedFileName,
         FilePath = $"/Upload/document/{storedFileName}",
         ContentType = dto.File.ContentType,
@@ -82,6 +92,7 @@ namespace CrudOperation.Service
             Id = document.Id,
 
             StudentId = document.StudentId,
+            UploadUserId = userId,
 
             FileName = document.FileName,
 
@@ -97,14 +108,23 @@ namespace CrudOperation.Service
                 $"/api/documents/{document.Id}/download"
       };
     }
-    public async Task<(byte[] FileBytes, string ContentType,string FileName)? > GetFileAsync(int documentId)
+    public async Task<(byte[] FileBytes, string ContentType,string FileName)? > GetFileAsync(int documentId, int userId, string roll)
     {
-      var document = await _context.Documents.FindAsync(documentId);
+      var document = await _context.Documents
+                     .Include(d => d.student)
+                     .FirstOrDefaultAsync( d => d.Id == documentId);
       if (document == null)
       {
         return null;
       }
 
+      if (roll.Equals( "Student", StringComparison.OrdinalIgnoreCase)) 
+      { 
+        if (document.student == null || document.student.UserId != userId) 
+        { 
+          throw new UnauthorizedAccessException( "Students can only access their own documents.");
+        }
+      }
       var fullPath = Path.Combine(
         _environment.WebRootPath,
         "uploads",
@@ -123,16 +143,30 @@ namespace CrudOperation.Service
         document.FileName
       );
   }
-  public async Task<List<DocumentResponseDto>> GetByStudentIdAsync(int studentId)
+  public async Task<List<DocumentResponseDto>> GetByStudentIdAsync(int studentId,int userId, string roll)
   {  
     var document = await _context.Documents
-                   .Where(d => d.StudentId == studentId)
-                   .ToListAsync();
+                   .FirstOrDefaultAsync( s => s.Id == studentId);
+                   
+
+    if (roll.Equals( "Student", StringComparison.OrdinalIgnoreCase)) 
+    { 
+      if (document.UserId != userId) 
+      { 
+        throw new UnauthorizedAccessException( "Students can only view their own documents."); 
+      } 
+    }
+
+    var documents = await _context.Documents 
+                    .Where(d => d.StudentId == studentId) 
+                    .OrderByDescending( d => d.UploadedAt) 
+                    .ToListAsync();
     
-    return document.Select(d => new DocumentResponseDto
+    return documents.Select(d => new DocumentResponseDto
     {
       Id = d.Id,
       StudentId = d.StudentId,
+      UploadUserId = d.UserId,
       FileName = d.FileName,
       ContentType = d.ContentType,
       FileSize = d.FileSize,
