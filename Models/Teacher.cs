@@ -6,6 +6,7 @@ namespace CrudOperation.Models
     public int UserId {get; set;}
     public string Name {get; set;}
     public string Email {get; set;}
+    public bool IsActive {get; set;} = true;
     public int Age {get; set;}
     public string Department {get; set;}
     public User? User {get; set;}
