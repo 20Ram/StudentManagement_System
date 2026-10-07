@@ -1,6 +1,6 @@
 namespace CrudOperation.DTOs
 {
-  public class StudentQueryDto
+  public class PaginationQueryDto  
   {
     public string Search {get; set;}
     public bool IsActive {get; set;}

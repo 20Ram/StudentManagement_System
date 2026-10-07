@@ -111,7 +111,7 @@ namespace CrudOperation.Service
                 studentDetails.Marks
             };
         }
-        public async Task<PaginatedResponseDto<object>> GetStudentsAsync(StudentQueryDto query)
+        public async Task<PaginatedResponseDto<object>> GetStudentsAsync(PaginationQueryDto query)
         {
      
           if (query.PageNumber < 1)
@@ -135,14 +135,11 @@ namespace CrudOperation.Service
           {
             var search = query.Search.Trim();
 
-            studentsQuery = studentsQuery.Where(s =>
-              s.Name.Contains(search) ||
-              s.Email.Contains(search) ||
-              s.Course.Contains(search));
+            studentsQuery = studentsQuery.Where(s => s.Name.Contains(search) || s.Email.Contains(search) || s.Course.Contains(search));
           }
  
-          query.SortBy = query.SortBy.ToLower();
-          query.SortOrder = query.SortOrder.ToLower();
+          query.SortBy = query.SortBy.ToLower() ?? "id";
+          query.SortOrder = query.SortOrder.ToLower() ?? "asc";
 
           if (query.SortBy == "name")
           {

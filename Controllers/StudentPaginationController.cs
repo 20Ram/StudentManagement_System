@@ -8,11 +8,11 @@ namespace CrudOperation.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize(Roles = "Admin,Teacher")]
-    public class StudentManagementController : ControllerBase
+    public class StudentPaginationController : ControllerBase
     {
         private readonly IStudentService _studentService;
 
-        public StudentManagementController(
+        public StudentPaginationController(
             IStudentService studentService)
         {
             _studentService = studentService;
@@ -20,7 +20,7 @@ namespace CrudOperation.Controllers
 
         [HttpGet("students")]
         public async Task<IActionResult> GetStudents(
-            [FromQuery] StudentQueryDto query)
+            [FromQuery] PaginationQueryDto query)
         {
             var result = await _studentService
                 .GetStudentsAsync(query);

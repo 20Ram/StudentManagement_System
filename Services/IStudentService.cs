@@ -6,6 +6,6 @@ namespace CrudOperation.Service
   {
     Task<object> UpdateAsync(UpdateStudentDto dto,string email);
     Task<object> GetProfileAsync(string email);
-    Task<PaginatedResponseDto<object>>GetStudentsAsync(StudentQueryDto query);
+    Task<PaginatedResponseDto<object>>GetStudentsAsync(PaginationQueryDto query);
   }
 }
