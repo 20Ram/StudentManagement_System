@@ -40,8 +40,10 @@ namespace CrudOperation.Service
         {
           return false;
         }
-        if (DateTime.UtcNow > otpRecord.ExpiresAt)
+        if (DateTime.UtcNow >= otpRecord.ExpiresAt)
         {
+          _context.OtpVerifications.Remove(otpRecord);
+          await _context.SaveChangesAsync();
           return false;
         }
         if (otpRecord.Attempts > 6)

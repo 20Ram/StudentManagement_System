@@ -100,6 +100,26 @@ namespace CrudOperation.Controllers
       } 
       return (userId, roleClaim); 
     } 
+
+    [HttpGet]
+    [Authorize(Roles = "Admin,Teacher,Student")]
+    public async Task<IActionResult> GetAll([FromQuery] string? email,[FromQuery] string? fileName)
+    {
+      var userInfo = GetCurrentUser();
+      if (userInfo == null)
+      {
+        return Unauthorized();
+      }
+
+      var documents = await _documentService.GetAllAsync(
+        email,
+        fileName,
+        userInfo.Value.UserId,
+        userInfo.Value.Role);
+
+      return Ok(documents);
+    }
+
     [Authorize(Roles = "Admin,Student")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)

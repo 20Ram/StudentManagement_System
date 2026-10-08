@@ -16,7 +16,7 @@ namespace CrudOperation.Service
     }
     public async Task<DocumentResponseDto> UploadAsync(DocumentUploadDto dto,int userId,string roll)
     {
-      var student =await _context.Students.FindAsync(dto.StudentId);
+       var student = await _context.Students.FirstOrDefaultAsync(s => s.Id == dto.StudentId);
       if(student == null)
       {
         throw new Exception ("Student Not Found.");
@@ -44,11 +44,6 @@ namespace CrudOperation.Service
       if (dto.File.Length > maxFileSize)
       {
         throw new Exception ("File Size is More than 5 MB.");
-      }
-      
-      if (student == null) 
-      { 
-        throw new Exception("Student not found."); 
       }
        
       if (roll.Equals("Student", StringComparison.OrdinalIgnoreCase)) 
@@ -143,38 +138,82 @@ namespace CrudOperation.Service
         document.FileName
       );
     }
-    public async Task<List<DocumentResponseDto>> GetByStudentIdAsync(int studentId,int userId,   string roll)
-    {  
-      var document = await _context.Documents
-                   .FirstOrDefaultAsync( s => s.Id == studentId);
-                   
+    public async Task<List<DocumentResponseDto>>GetByStudentIdAsync(int studentId,int userId,   string roll)
+    {
+      var student = await _context.Students
+        .AsNoTracking()
+        .FirstOrDefaultAsync(s => s.Id == studentId);
 
-      if (roll.Equals( "Student", StringComparison.OrdinalIgnoreCase)) 
-      { 
-        if (document.UserId != userId) 
-        { 
-          throw new UnauthorizedAccessException( "Students can only view their own documents."); 
-        } 
+      if (student == null)
+      {
+        return [];
       }
 
-      var documents = await _context.Documents 
-                    .Where(d => d.StudentId == studentId) 
-                    .OrderByDescending( d => d.UploadedAt) 
-                    .ToListAsync();
-    
-      return documents.Select(d => new DocumentResponseDto
+      if (roll.Equals("Student", StringComparison.OrdinalIgnoreCase) &&
+          student.UserId != userId)
       {
-        Id = d.Id,
-        StudentId = d.StudentId,
-        UploadUserId = d.UserId,
-        FileName = d.FileName,
-        ContentType = d.ContentType,
-        FileSize = d.FileSize,
-        UploadedAt = d.UploadedAt,
-        ViewUrl = $"/api/documents/{d.Id}/view",
-        DownloadUrl = $"/api/documents/{d.Id}/download"
-      }).ToList();  
+        throw new UnauthorizedAccessException(
+          "Students can only view their own documents.");
+      }
+
+      var documents = await _context.Documents
+        .AsNoTracking()
+        .Where(d => d.StudentId == studentId)
+        .OrderByDescending(d => d.UploadedAt)
+        .ToListAsync();
+
+      return documents.Select(ToResponse).ToList();
     }
+
+    public async Task<List<DocumentResponseDto>>GetAllAsync(string? email,string? fileName,int userId,string roll)
+    {
+      var documents = _context.Documents
+        .AsNoTracking()
+        .Include(d => d.student)
+        .ThenInclude(s => s.User)
+        .AsQueryable();
+
+      if (roll.Equals("Student", StringComparison.OrdinalIgnoreCase))
+      {
+        documents = documents.Where(d =>
+          d.student != null && d.student.UserId == userId);
+      }
+
+      if (!string.IsNullOrWhiteSpace(email))
+      {
+        documents = documents.Where(d =>
+          d.student != null &&
+          ((d.student.Email != null && d.student.Email.Contains(email)) ||
+           (d.student.User != null && d.student.User.Email.Contains(email))));
+      }
+
+      if (!string.IsNullOrWhiteSpace(fileName))
+      {
+        documents = documents.Where(d => d.FileName.Contains(fileName));
+      }
+
+      var results = await documents
+        .OrderByDescending(d => d.UploadedAt)
+        .ToListAsync();
+
+      return results.Select(ToResponse).ToList();
+    }
+    private static DocumentResponseDto ToResponse(Document document)
+    {
+      return new DocumentResponseDto
+      {
+        Id = document.Id,
+        StudentId = document.StudentId,
+        UploadUserId = document.UserId,
+        FileName = document.FileName,
+        ContentType = document.ContentType,
+        FileSize = document.FileSize,
+        UploadedAt = document.UploadedAt,
+        ViewUrl = $"/api/documents/{document.Id}/view",
+        DownloadUrl = $"/api/documents/{document.Id}/download"
+      };
+    }
+
     public async Task DeleteAsync(int documentId,int userId,string roll)
     {
       var document = await _context.Documents
