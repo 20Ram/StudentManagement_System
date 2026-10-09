@@ -15,6 +15,7 @@ namespace CrudOperation.DTOs
     public int? Age {get; set;}
     public string? Course {get; set;}
     public double? Marks {get; set;}
+    public string? Department {get; set;} 
 
   }
 }

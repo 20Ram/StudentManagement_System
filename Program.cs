@@ -10,7 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 
  
 builder.Services.AddControllers();
-
+builder.Services.AddRazorPages(); 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(
         builder.Configuration.GetConnectionString("DefaultConnection"),
@@ -25,7 +25,7 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 builder.Services.AddScoped<IStudentService, StudentService>();
-
+ 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["SecretKey"];
 
@@ -91,5 +91,6 @@ app.UseAuthorization();
 app.UseStaticFiles();
 app.UseHttpsRedirection();
 app.MapControllers();
-
+app.MapRazorPages();
+ 
 app.Run();

@@ -5,11 +5,8 @@ using CrudOperation.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-
-
 namespace  CrudOperation.Controllers
-{
-   
+{  
   [ApiController]
   [Route("api/[controller]")]
   [Authorize(Roles = "Admin")]
@@ -27,12 +24,13 @@ namespace  CrudOperation.Controllers
 
     [HttpGet("dashboard")]
     public IActionResult Dashboard()
-    {  // add the is verified funcanility
+    {  
       var totalStudent = _context.Users.Count(u => u.Roll == "Student");
       
       var reportAverage = _context.Users.Average(u => u.Student.Marks);
 
       var totalTeacher = _context.Users.Count(u => u.Roll == "Teacher");
+       
       return Ok(new
         {
           message = "Welcome to Admin Dashboard" ,
@@ -155,7 +153,7 @@ namespace  CrudOperation.Controllers
                     Name = dto.Name.Trim(),
                     Email = email,
                     Roll = dto.Roll,
-                    IsEmailVerified = false
+                    IsEmailVerified = true
                 };
 
                 _context.Users.Add(user);
@@ -180,26 +178,7 @@ namespace  CrudOperation.Controllers
             {
                 existingUser.Name = dto.Name.Trim();
                 await _context.SaveChangesAsync();
-            }
-
-            var otp = await _otpService.GenerateOtpAsync(email);
-
-            await _emailService.SendEmailAsync(
-                email,
-                "Student Management System - Email Verification",
-                $"""
-                Hello {dto.Name},
-
-                Your OTP is: {otp}
-
-                This OTP will expire in 5 minutes.
-
-                Please do not share this OTP with anyone.
-
-                Regards,
-                Student Management System
-                """
-            );
+            }  
 
             return Ok(new
             {
@@ -239,7 +218,7 @@ namespace  CrudOperation.Controllers
                     Name = dto.Name.Trim(),
                     Email = email,
                     Roll = dto.Roll,
-                    IsEmailVerified = false
+                    IsEmailVerified = true
                 };
 
                 _context.Users.Add(user);
@@ -264,25 +243,6 @@ namespace  CrudOperation.Controllers
                 existingUser.Name = dto.Name.Trim();
                 await _context.SaveChangesAsync();
             }
-
-            var otp = await _otpService.GenerateOtpAsync(email);
-
-            await _emailService.SendEmailAsync(
-                email,
-                "Student Management System - Email Verification",
-                $"""
-                Hello {dto.Name},
-
-                Your OTP is: {otp}
-
-                This OTP will expire in 5 minutes.
-
-                Please do not share this OTP with anyone.
-
-                Regards,
-                Student Management System
-                """
-            );
 
             return Ok(new
             {
