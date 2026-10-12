@@ -87,7 +87,7 @@ namespace CrudOperation.Controllers
     private (int UserId, string Role)? GetCurrentUser() 
     { 
       var userIdClaim = User.FindFirst( ClaimTypes.NameIdentifier)?.Value;
-
+     
       var roleClaim = User.FindFirst( ClaimTypes.Role)?.Value; 
 
       if (!int.TryParse( userIdClaim, out int userId)) 

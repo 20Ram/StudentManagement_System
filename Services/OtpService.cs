@@ -14,7 +14,7 @@ namespace CrudOperation.Service
     }
     public async Task<string> GenerateOtpAsync(string email)
     {
-      var otpNumber = RandomNumberGenerator.GetInt32(100000,1000000);
+      var otpNumber = RandomNumberGenerator.GetInt32(100000, 1000000);
       var otp = otpNumber.ToString();
       var otpVerification = new OtpVerification
       {
@@ -36,30 +36,30 @@ namespace CrudOperation.Service
         .Where(o => o.Email == email && !o.IsUsed)
         .OrderByDescending(o => o.CreatedAt)
         .FirstOrDefaultAsync();
-        if (otpRecord == null)
-        {
-          return false;
-        }
-        if (DateTime.UtcNow >= otpRecord.ExpiresAt)
-        {
-          _context.OtpVerifications.Remove(otpRecord);
-          await _context.SaveChangesAsync();
-          return false;
-        }
-        if (otpRecord.Attempts > 6)
-        {
-          return false;
-        }
-        otpRecord.Attempts++;
-
-        if (otpRecord.OtpHash != otp)
-        {
-         await _context.SaveChangesAsync();
-         return false;
-        }
-        otpRecord.IsUsed = true;
+      if (otpRecord == null)
+      {
+        return false;
+      }
+      if (DateTime.UtcNow >= otpRecord.ExpiresAt)
+      {
+        _context.OtpVerifications.Remove(otpRecord);
         await _context.SaveChangesAsync();
-        return true;
+        return false;
+      }
+      if (otpRecord.Attempts > 6)
+      {
+        return false;
+      }
+      otpRecord.Attempts++;
+
+      if (otpRecord.OtpHash != otp)
+      {
+        await _context.SaveChangesAsync();
+        return false;
+      }
+      otpRecord.IsUsed = true;
+      await _context.SaveChangesAsync();
+      return true;
     }
   }
 }

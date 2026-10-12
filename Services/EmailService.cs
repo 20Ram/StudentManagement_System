@@ -15,8 +15,7 @@ namespace CrudOperation.Service
     {
       var email = new MimeMessage();
       email.From.Add(
-          new MailboxAddress(
-              "Student Management System",
+          new MailboxAddress("Student Management System",
               _configuration["EmailSettings:Email"]
               )
           );
