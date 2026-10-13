@@ -15,8 +15,10 @@ namespace CrudOperation.Service
       _environment = environment;
     }
     public async Task<DocumentResponseDto> UploadAsync(DocumentUploadDto dto,int userId,string roll)
-    {
-       var student = await _context.Students.FirstOrDefaultAsync(s => s.Id == dto.StudentId);
+    { 
+      // var user = await _context.Students.FirstOrDefaultAsync(s => s.UserId == userId);
+      var student = await _context.Students.FirstOrDefaultAsync(s => s.Id == dto.StudentId);
+      
       if(student == null)
       {
         throw new Exception ("Student Not Found.");
