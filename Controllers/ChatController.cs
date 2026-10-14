@@ -44,11 +44,16 @@ namespace CrudOperation.Controllers
 
                 return Ok(result);
             }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
             catch (HttpRequestException)
             {
                 return StatusCode(502, new
                 {
-                    message = "The AI service is temporarily unavailable."
+                    message = "The AI provider request failed. " +
+                              "Please try again later."
                 });
             }
             catch (InvalidOperationException)

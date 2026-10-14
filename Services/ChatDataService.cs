@@ -1,25 +1,235 @@
+using CrudOperation.Data;
+using Microsoft.EntityFrameworkCore;
+
 namespace CrudOperation.Service
 {
     public class ChatDataService : IChatDataService
     {
-        public Task<string> GetStudentContextAsync(string userId)
+        private readonly AppDbContext _context;
+
+        public ChatDataService(AppDbContext context)
         {
-            return Task.FromResult(
-                "Student profile data is not connected yet.");
+            _context = context;
         }
 
-        public Task<string> GetCourseContextAsync(
+        public async Task<string> GetStudentContextAsync(
+            string userId)
+        {
+            if (!int.TryParse(userId, out int id))
+            {
+                return "The authenticated user ID is invalid.";
+            }
+
+            var student = await _context.Students
+                .AsNoTracking()
+                .Where(s => s.UserId == id)
+                .Select(s => new
+                {
+                    s.Name,
+                    s.Email,
+                    s.Age,
+                    s.Course,
+                    s.IsActive,
+                    s.Marks
+                })
+                .FirstOrDefaultAsync();
+
+            if (student == null)
+            {
+                return "No student profile was found for this account.";
+            }
+
+            return $"""
+                Authorized student profile:
+                Name: {student.Name}
+                Email: {student.Email}
+                Age: {student.Age}
+                Course: {student.Course}
+                Active: {student.IsActive}
+                Marks: {student.Marks}
+                """;
+        }
+
+        public async Task<string> GetCourseContextAsync(
             string userId,
             string role)
         {
-            return Task.FromResult(
-                "Course data is not connected yet.");
+            if (!int.TryParse(userId, out int id))
+            {
+                return "The authenticated user ID is invalid.";
+            }
+
+            if (role.Equals(
+                "Student", StringComparison.OrdinalIgnoreCase))
+            {
+                var student = await _context.Students
+                    .AsNoTracking()
+                    .Where(s => s.UserId == id)
+                    .Select(s => new
+                    {
+                        s.Name,
+                        s.Course,
+                        s.IsActive
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (student == null)
+                {
+                    return "No student course information was found.";
+                }
+
+                return $"""
+                    Authorized course information:
+                    Student: {student.Name}
+                    Course: {student.Course}
+                    Active: {student.IsActive}
+                    """;
+            }
+
+            if (role.Equals(
+                "Teacher", StringComparison.OrdinalIgnoreCase))
+            {
+                var teacher = await _context.Teachers
+                    .AsNoTracking()
+                    .Where(t => t.UserId == id)
+                    .Select(t => new
+                    {
+                        t.Name,
+                        t.Department,
+                        t.IsActive
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (teacher == null)
+                {
+                    return "No teacher profile was found for this account.";
+                }
+
+                return $"""
+                    Authorized teacher information:
+                    Teacher: {teacher.Name}
+                    Department: {teacher.Department}
+                    Active: {teacher.IsActive}
+
+                    The current data model does not define teacher-to-course
+                    assignments, so assigned courses cannot be verified.
+                    """;
+            }
+
+            if (role.Equals(
+                "Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                var courses = await _context.Students
+                    .AsNoTracking()
+                    .Where(s => s.Course != null && s.Course != "")
+                    .Select(s => s.Course)
+                    .Distinct()
+                    .ToListAsync();
+
+                return "Distinct course names found in student records: " +
+                    (courses.Count == 0
+                        ? "No course names found."
+                        : string.Join(", ", courses));
+            }
+
+            return "Course information is unavailable for this role.";
         }
 
-        public Task<string> GetStudentStatisticsAsync(string role)
+        public async Task<string> GetStudentStatisticsAsync(
+            string role)
         {
-            return Task.FromResult(
-                "Student statistics are not connected yet.");
+            bool isAdmin = role.Equals(
+                "Admin", StringComparison.OrdinalIgnoreCase);
+
+            bool isTeacher = role.Equals(
+                "Teacher", StringComparison.OrdinalIgnoreCase);
+
+            if (!isAdmin && !isTeacher)
+            {
+                return "Student statistics are not available for this role.";
+            }
+
+            var totalStudents = await _context.Students.CountAsync();
+
+            var activeStudents = await _context.Students
+                .CountAsync(s => s.IsActive);
+
+            var inactiveStudents = totalStudents - activeStudents;
+
+            var averageMarks = totalStudents > 0
+                ? await _context.Students.AverageAsync(s => s.Marks)
+                : 0;
+
+            return $"""
+                Student statistics:
+                Total students: {totalStudents}
+                Active students: {activeStudents}
+                Inactive students: {inactiveStudents}
+                Average marks: {averageMarks:F2}
+
+                These statistics were calculated from the Students table.
+                """;
         }
+
+
+        public async Task<string> GetDocumentContextAsync(
+            string userId,
+            string role)
+        {
+            if (!int.TryParse(userId, out int id))
+            {
+                return "The authenticated user ID is invalid.";
+            }
+
+            IQueryable<CrudOperation.Models.Document> query =
+                _context.Documents.AsNoTracking();
+
+            if (role.Equals(
+                "Student", StringComparison.OrdinalIgnoreCase))
+            {
+                // A student can see only documents belonging to their
+                // own student profile, including documents uploaded by
+                // an authorized admin or teacher on their behalf.
+                query = query.Where(d => d.student.UserId == id);
+            }
+            else if (role.Equals(
+                "Teacher", StringComparison.OrdinalIgnoreCase))
+            {
+                // Do not expose documents across all students until
+                // teacher-to-student access rules are implemented.
+                return "Teacher document access must be checked against " +
+                       "the application's student assignment permissions.";
+            }
+            else if (!role.Equals(
+                "Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Document information is not available for this role.";
+            }
+
+            var documents = await query
+                .OrderByDescending(d => d.UploadedAt)
+                .Select(d => new
+                {
+                    d.FileName,
+                    d.ContentType,
+                    d.FileSize,
+                    d.UploadedAt
+                })
+                .Take(50)
+                .ToListAsync();
+
+            if (documents.Count == 0)
+            {
+                return "No authorized documents were found.";
+            }
+
+            return "Authorized document list:\n" +
+                string.Join("\n", documents.Select(d =>
+                    $"File: {d.FileName}; " +
+                    $"Type: {d.ContentType}; " +
+                    $"Size: {d.FileSize} bytes; " +
+                    $"Uploaded: {d.UploadedAt:yyyy-MM-dd HH:mm}"));
+        }
+
     }
 }
