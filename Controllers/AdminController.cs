@@ -5,54 +5,60 @@ using CrudOperation.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-namespace  CrudOperation.Controllers
-{  
-  [ApiController]
-  [Route("api/[controller]")]
-  [Authorize(Roles = "Admin")]
-  public class AdminController : ControllerBase
-  {
-    private readonly AppDbContext _context;
-    private readonly IEmailService _emailService;
-    private readonly IOtpService _otpService;
-    public AdminController(AppDbContext context,IEmailService emailService,IOtpService otpService )
+namespace CrudOperation.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize(Roles = "Admin")]
+    public class AdminController : ControllerBase
     {
-      _context = context;
-      _emailService = emailService;
-      _otpService = otpService;
-    }
-
-    [HttpGet("dashboard")]
-    public IActionResult Dashboard()
-    {  
-      var totalStudent = _context.Users.Count(u => u.Roll == "Student");
-      
-      var reportAverage = _context.Users.Average(u => u.Student.Marks);
-
-      var totalTeacher = _context.Users.Count(u => u.Roll == "Teacher");
-       
-      return Ok(new
+        private readonly AppDbContext _context;
+        private readonly IEmailService _emailService;
+        private readonly IOtpService _otpService;
+        public AdminController(AppDbContext context, IEmailService emailService, IOtpService otpService)
         {
-          message = "Welcome to Admin Dashboard" ,
-          totalStudent,
-          reportAverage,
-          totalTeacher
-        });
-    }
+            _context = context;
+            _emailService = emailService;
+            _otpService = otpService;
+        }
 
-    [HttpGet("user")]
-    public async Task<IActionResult> GetUsers()
-    {
-      
-      var users = await _context.Users
-                .Select(u => new{
-                u.Id,u.Email,u.Name,u.Roll,u.IsEmailVerified})
-                .Where(u => u.IsEmailVerified == true)
-                .ToListAsync();
-      return Ok(users);
-    }
+        [HttpGet("dashboard")]
+        public IActionResult Dashboard()
+        {
+            var totalStudent = _context.Users.Count(u => u.Roll == "Student");
 
-     [HttpGet("teachers")]
+            var reportAverage = _context.Users.Average(u => u.Student.Marks);
+
+            var totalTeacher = _context.Users.Count(u => u.Roll == "Teacher");
+
+            return Ok(new
+            {
+                message = "Welcome to Admin Dashboard",
+                totalStudent,
+                reportAverage,
+                totalTeacher
+            });
+        }
+
+        [HttpGet("user")]
+        public async Task<IActionResult> GetUsers()
+        {
+
+            var users = await _context.Users
+                      .Select(u => new
+                      {
+                          u.Id,
+                          u.Email,
+                          u.Name,
+                          u.Roll,
+                          u.IsEmailVerified
+                      })
+                      .Where(u => u.IsEmailVerified == true)
+                      .ToListAsync();
+            return Ok(users);
+        }
+
+        [HttpGet("teachers")]
         public async Task<IActionResult> GetTeachers()
         {
             var teachers = await _context.Users
@@ -60,7 +66,7 @@ namespace  CrudOperation.Controllers
                 .ToListAsync();
 
             return Ok(teachers);
-        } 
+        }
 
         [HttpGet("students")]
         public async Task<IActionResult> GetStudents()
@@ -71,7 +77,7 @@ namespace  CrudOperation.Controllers
 
             return Ok(students);
         }
- 
+
         [HttpPut("change-role/{id}")]
         public async Task<IActionResult> ChangeRole(
             int id,
@@ -87,7 +93,7 @@ namespace  CrudOperation.Controllers
                 });
             }
 
-            var allowedRoles = new[] {"Admin","Teacher","Student"};
+            var allowedRoles = new[] { "Admin", "Teacher", "Student" };
 
             if (!allowedRoles.Contains(dto.Roll))
             {
@@ -98,6 +104,20 @@ namespace  CrudOperation.Controllers
             }
 
             user.Roll = dto.Roll;
+            if (!string.IsNullOrEmpty(user.Email))
+            {
+                await _emailService.SendEmailAsync(
+                    user.Email ?? "defult@gmail.com",
+                    "Student Management System - Roll Updated",
+                    $"Hello {user.Name},\n\nYour profile Roll has been updated by your Admin. Your current Roll are: {user.Roll}.\n\nRegards,\nStudent Management System"
+                );
+            }
+            _context.AuditLogs.Add(new AuditLog
+            {
+                UserEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "System",
+                Action = "UPDATE_Roll",
+                Details = $"Updated Roll {user.Email}"
+            });
 
             await _context.SaveChangesAsync();
 
@@ -107,32 +127,38 @@ namespace  CrudOperation.Controllers
                 userId = user.Id,
                 role = user.Roll
             });
-      }
-      [HttpDelete("Delete-User{id}")]
-      public async Task<IActionResult> DeleteUser(int id)
-      {
-      var removeUser = _context.Users.FirstOrDefault(s => s.Id == id);
-      if (removeUser == null)
-      {
-        return NotFound(removeUser);
-      }
-      removeUser.IsEmailVerified = false;
-      await _context.SaveChangesAsync();
-      return Ok(removeUser);
-    }
-    
-    [HttpPost("create-student")]
-    public async Task<IActionResult> CreateUser(CreateStudentDto dto)
+        }
+        [HttpDelete("Delete-User{id}")]
+        public async Task<IActionResult> DeleteUser(int id)
+        {
+            var removeUser = _context.Users.FirstOrDefault(s => s.Id == id);
+            if (removeUser == null)
+            {
+                return NotFound(removeUser);
+            }
+            removeUser.IsEmailVerified = false;
+            _context.AuditLogs.Add(new AuditLog
+            {
+                UserEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "System",
+                Action = "Delete_User",
+                Details = $"Delete User {removeUser.Email}"
+            });
+            await _context.SaveChangesAsync();
+            return Ok(removeUser);
+        }
+
+        [HttpPost("create-student")]
+        public async Task<IActionResult> CreateUser(CreateStudentDto dto)
         {
             var allowedRoles = new[] { "Student", "Teacher" };
 
             if (!allowedRoles.Contains(dto.Roll))
             {
-               return BadRequest(new
-               {
-                 message = "Invalid role."
-             });
-           }
+                return BadRequest(new
+                {
+                    message = "Invalid role."
+                });
+            }
             var email = dto.Email.Trim().ToLowerInvariant();
 
             var existingUser = await _context.Users
@@ -158,10 +184,10 @@ namespace  CrudOperation.Controllers
 
                 _context.Users.Add(user);
                 await _context.SaveChangesAsync();
-                if(dto.Roll == "Student")
+                if (dto.Roll == "Student")
                 {
                     var student = new Student
-                    {  
+                    {
                         UserId = user.Id,
                         Name = dto.Name.Trim(),
                         Email = user.Email,
@@ -178,7 +204,7 @@ namespace  CrudOperation.Controllers
             {
                 existingUser.Name = dto.Name.Trim();
                 await _context.SaveChangesAsync();
-            }  
+            }
 
             return Ok(new
             {
@@ -187,17 +213,17 @@ namespace  CrudOperation.Controllers
         }
 
         [HttpPost("create-teacher")]
-    public async Task<IActionResult> Createteacher(CreateTeacherDto dto)
+        public async Task<IActionResult> Createteacher(CreateTeacherDto dto)
         {
             var allowedRoles = new[] { "Student", "Teacher" };
 
             if (!allowedRoles.Contains(dto.Roll))
             {
-               return BadRequest(new
-               {
-                 message = "Invalid role."
-             });
-           }
+                return BadRequest(new
+                {
+                    message = "Invalid role."
+                });
+            }
             var email = dto.Email.Trim().ToLowerInvariant();
 
             var existingUser = await _context.Users
@@ -224,10 +250,10 @@ namespace  CrudOperation.Controllers
                 _context.Users.Add(user);
                 await _context.SaveChangesAsync();
 
-                if(dto.Roll == "Teacher")
+                if (dto.Roll == "Teacher")
                 {
                     var teacher = new Teacher
-                    {  
+                    {
                         UserId = user.Id,
                         Name = dto.Name.Trim(),
                         Email = email,
@@ -249,5 +275,16 @@ namespace  CrudOperation.Controllers
                 message = "OTP sent successfully to your email."
             });
         }
-  }
+
+        [HttpGet("audit-logs")]
+        public async Task<IActionResult> GetAuditLogs([FromQuery] int limit = 50)
+        {
+            var logs = await _context.AuditLogs
+                .OrderByDescending(l => l.Timestamp)
+                .Take(limit)
+                .ToListAsync();
+
+            return Ok(logs);
+        }
+    }
 }

@@ -15,7 +15,7 @@ namespace CrudOperation.Data
     public DbSet<Teacher> Teachers {get; set;}
     public DbSet<Document> Documents {get; set;}
     public DbSet<ChatMessage> ChatMessages {get; set;} = null!;
-    
+    public DbSet<AuditLog> AuditLogs {get; set;}
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
