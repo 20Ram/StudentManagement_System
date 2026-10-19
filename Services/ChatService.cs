@@ -258,7 +258,7 @@ namespace CrudOperation.Service
               "document list",
               "document history"))
             {
-               await _dataService.GetDocumentContextAsync(
+              return await _dataService.GetDocumentContextAsync(
                     userId,
                     role
                );
