@@ -14,6 +14,8 @@ namespace CrudOperation.Data
     public DbSet<OtpVerification> OtpVerifications{get; set;}
     public DbSet<Teacher> Teachers {get; set;}
     public DbSet<Document> Documents {get; set;}
+    public DbSet<ChatMessage> ChatMessages {get; set;} = null!;
+    
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

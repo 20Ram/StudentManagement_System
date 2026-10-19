@@ -3,7 +3,6 @@ using CrudOperation.Service;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
-
 namespace CrudOperation.Controllers
 {
     [ApiController]
@@ -12,10 +11,14 @@ namespace CrudOperation.Controllers
     public class ChatController : ControllerBase
     {
         private readonly IChatService _chatService;
+        private readonly ILogger<ChatController> _logger;
 
-        public ChatController(IChatService chatService)
+        public ChatController(
+            IChatService chatService,
+            ILogger<ChatController> logger)
         {
             _chatService = chatService;
+            _logger = logger;
         }
 
         [HttpPost("ask")]
@@ -40,27 +43,40 @@ namespace CrudOperation.Controllers
             try
             {
                 var result = await _chatService.GetReplyAsync(
-                    request.Message, userId, role);
+                    request.Message,
+                    userId,
+                    role,
+                    request.ConversationId);
 
                 return Ok(result);
             }
             catch (ArgumentException ex)
             {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (HttpRequestException)
-            {
-                return StatusCode(502, new
+                return BadRequest(new
                 {
-                    message = "The AI provider request failed. " +
-                              "Please try again later."
+                    message = ex.Message
                 });
             }
-            catch (InvalidOperationException)
+            catch (HttpRequestException ex)
             {
+                _logger.LogWarning(
+                    ex, "Chat AI request failed.");
+
+                return StatusCode(502, new
+                {
+                    message = "The AI assistant is temporarily " +
+                              "unavailable. Please try again."
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogError(
+                    ex, "Chat AI configuration error.");
+
                 return StatusCode(500, new
                 {
-                    message = "The AI service is not configured correctly."
+                    message = "The AI service is not configured " +
+                              "correctly."
                 });
             }
         }

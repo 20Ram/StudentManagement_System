@@ -172,6 +172,7 @@ namespace CrudOperation.Service
         }
 
 
+
         public async Task<string> GetDocumentContextAsync(
             string userId,
             string role)
@@ -181,29 +182,29 @@ namespace CrudOperation.Service
                 return "The authenticated user ID is invalid.";
             }
 
-            IQueryable<CrudOperation.Models.Document> query =
+            IQueryable<Models.Document> query =
                 _context.Documents.AsNoTracking();
 
-            if (role.Equals(
-                "Student", StringComparison.OrdinalIgnoreCase))
+            if (role.Equals("Student",
+                StringComparison.OrdinalIgnoreCase))
             {
-                // A student can see only documents belonging to their
-                // own student profile, including documents uploaded by
-                // an authorized admin or teacher on their behalf.
-                query = query.Where(d => d.student.UserId == id);
+                query = query.Where(d =>
+                    d.student != null &&
+                    d.student.UserId == id);
             }
-            else if (role.Equals(
-                "Teacher", StringComparison.OrdinalIgnoreCase))
+            else if (role.Equals("Admin",
+                StringComparison.OrdinalIgnoreCase))
             {
-                // Do not expose documents across all students until
-                // teacher-to-student access rules are implemented.
-                return "Teacher document access must be checked against " +
-                       "the application's student assignment permissions.";
             }
-            else if (!role.Equals(
-                "Admin", StringComparison.OrdinalIgnoreCase))
+            else if (role.Equals("Teacher",
+                StringComparison.OrdinalIgnoreCase))
             {
-                return "Document information is not available for this role.";
+                return "Teacher document access is not configured " +
+                       "until student assignment permissions are implemented.";
+            }
+            else
+            {
+                return "Document access is not available for this role.";
             }
 
             var documents = await query
