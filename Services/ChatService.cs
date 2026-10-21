@@ -65,8 +65,7 @@ namespace CrudOperation.Service
                     "The authenticated user role is missing.");
             }
 
-            var apiKey = Environment.GetEnvironmentVariable(
-                "GEMINI_API_KEY");
+            var apiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY");
 
             if (string.IsNullOrWhiteSpace(apiKey))
             {
@@ -74,7 +73,8 @@ namespace CrudOperation.Service
                     "Gemini API key is not configured.");
             }
 
-            var model = _configuration["Gemini:Model"];
+            var model = Environment.GetEnvironmentVariable("GEMINI_MODEL")
+            ?? _configuration["Gemini:Model"];
 
             if (string.IsNullOrWhiteSpace(model))
             {
@@ -530,13 +530,12 @@ namespace CrudOperation.Service
             }
  
             return """
-                No private application data was retrieved for
-                this question.
+                No private application data was retrieved for this question.
 
-                Answer general questions about the application
-                and its technologies. If the user asks for a
-                specific database record, do not invent it.
-                """;
+                Answer general questions about using the Student Management System and its supported features. 
+                Do not claim to have retrieved private records. 
+                If a specific record is requested but was not retrieved, explain that the information is unavailable.
+            """;
         }
 
         private static bool ContainsAny(

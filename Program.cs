@@ -5,7 +5,13 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi;
+using DotNetEnv;
 
+// Env.Load();
+Env.Load(Path.Combine(
+    Directory.GetCurrentDirectory(),
+    ".env"
+));
 var builder = WebApplication.CreateBuilder(args);
 
  

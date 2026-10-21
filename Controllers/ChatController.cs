@@ -39,7 +39,6 @@ namespace CrudOperation.Controllers
             {
                 return Forbid();
             }
-
             try
             {
                 var result = await _chatService.GetReplyAsync(
