@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using CrudOperation.Models;
-using CrudOperation.Models.Fees;
 
 namespace CrudOperation.Data
 {
@@ -17,27 +16,9 @@ namespace CrudOperation.Data
         public DbSet<Document> Documents { get; set; }
         public DbSet<ChatMessage> ChatMessages { get; set; } = null!;
         public DbSet<AuditLog> AuditLogs { get; set; }
-        public DbSet<FeeCategory> FeeCategories => Set<FeeCategory>();
-        public DbSet<FeeStructure> FeeStructures => Set<FeeStructure>();
-        public DbSet<FeeStructureItem> FeeStructureItems => Set<FeeStructureItem>();
-        public DbSet<StudentFeeAssignment> StudentFeeAssignments => Set<StudentFeeAssignment>();
-        public DbSet<StudentFeeItem> StudentFeeItems => Set<StudentFeeItem>();
-        public DbSet<FeeInstallment> FeeInstallments => Set<FeeInstallment>();
-        public DbSet<FeePayment> FeePayments => Set<FeePayment>();
-        public DbSet<FeePaymentAllocation> FeePaymentAllocations => Set<FeePaymentAllocation>();
-        public DbSet<FeeAdjustment> FeeAdjustments => Set<FeeAdjustment>();
-        public DbSet<FeeAdjustmentAllocation> FeeAdjustmentAllocations 
-            => Set<FeeAdjustmentAllocation>();
-        public DbSet<FeePolicy> FeePolicies => Set<FeePolicy>();
-        public DbSet<FeeLateFeeAssessment> FeeLateFeeAssessments => Set<FeeLateFeeAssessment>();
-        public DbSet<FeeRefund> FeeRefunds => Set<FeeRefund>();
-        public DbSet<FeeRefundReversal> FeeRefundReversals => Set<FeeRefundReversal>();
-        public DbSet<FeeApproval> FeeApprovals => Set<FeeApproval>();
-        public DbSet<FeeNotification> FeeNotifications => Set<FeeNotification>();
-        public DbSet<FeeAuditLog> FeeAuditLogs => Set<FeeAuditLog>();
-        public DbSet<PaymentGatewayEvent> PaymentGatewayEvents => Set<PaymentGatewayEvent>();
-        public DbSet<FeeStaffGrant> FeeStaffGrants => Set<FeeStaffGrant>();
-        public DbSet<FeeReceiptSequence> FeeReceiptSequences => Set<FeeReceiptSequence>();
+        public DbSet<PaymentTransaction> PaymentTransactions { get; set; } = null!;
+        public DbSet<StudentFee> StudentFees => Set<StudentFee>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<User>()
@@ -47,7 +28,7 @@ namespace CrudOperation.Data
 
             modelBuilder.Entity<User>()
                 .HasOne(u => u.Teacher)
-                .WithOne(t => t.User) 
+                .WithOne(t => t.User)
                 .HasForeignKey<Teacher>(t => t.UserId);
 
             modelBuilder.Entity<Student>()
@@ -60,6 +41,35 @@ namespace CrudOperation.Data
                 .WithOne(d => d.userUploaded)
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PaymentTransaction>(e => {
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Amount).HasPrecision(10, 2);
+                e.Property(x => x.Currency).HasMaxLength(3).IsRequired();
+                e.Property(x => x.Method).HasMaxLength(20).IsRequired();
+                e.Property(x => x.UserId).HasMaxLength(100).IsRequired();
+                e.Property(x => x.RazorpayOrderId).HasMaxLength(100).IsRequired();
+                e.Property(x => x.RazorpayPaymentId).HasMaxLength(100);
+                e.Property(x => x.Status).HasMaxLength(20).IsRequired();
+                e.Property(x => x.FailureReason).HasMaxLength(250);
+                e.HasIndex(x => x.RazorpayOrderId).IsUnique();
+ 
+                e.HasIndex(x => x.RazorpayPaymentId).IsUnique();
+                e.HasIndex(x => new { x.UserId, x.CreatedAtUtc });
+                e.HasIndex(x => new { x.FeeItemId, x.Status });
+  
+                e.HasOne<StudentFee>()
+                    .WithMany()
+                    .HasForeignKey(x => x.FeeItemId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<StudentFee>(e =>
+            {
+                e.Property(x => x.Title).HasMaxLength(100).IsRequired();
+                e.Property(x => x.TotalAmount).HasPrecision(10, 2);
+                e.Property(x => x.PaidAmount).HasPrecision(10, 2);
+            });
         }
     }
 }

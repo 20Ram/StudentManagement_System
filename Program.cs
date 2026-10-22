@@ -2,6 +2,8 @@
 using CrudOperation.Data;
 using CrudOperation.Service;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using System.Security.Claims;
+using System.Threading.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi;
@@ -14,7 +16,7 @@ Env.Load(Path.Combine(
 ));
 var builder = WebApplication.CreateBuilder(args);
 
- 
+
 builder.Services.AddControllers();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseMySql(
@@ -30,8 +32,43 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 builder.Services.AddScoped<IStudentService, StudentService>();
-builder.Services.AddHttpClient<IChatService,ChatService>();
+builder.Services.AddHttpClient<IChatService, ChatService>();
 builder.Services.AddScoped<IChatDataService, ChatDataService>();
+builder.Services.AddScoped<IFeePaymentAmountProvider, FeePaymentAmountProvider>();
+builder.Services.AddScoped<IFeeService, FeeService>();   
+builder.Services.AddHttpClient<IRazorpayPaymentService, RazorpayPaymentService>(c =>
+{
+    c.Timeout = TimeSpan.FromSeconds(20);
+});
+
+static string PartitionKey(HttpContext ctx) =>
+    ctx.User.FindFirstValue(ClaimTypes.NameIdentifier)
+    ?? ctx.Connection.RemoteIpAddress?.ToString()
+    ?? "anonymous";
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy("create-order", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            PartitionKey(httpContext),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1)
+            }));
+
+    options.AddPolicy("verify-payment", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            PartitionKey(httpContext),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1)
+            }));
+});
+
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["SecretKey"];
@@ -91,12 +128,12 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseCors("AllowFrontend");
-
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();   
 
 app.UseStaticFiles();
 app.UseHttpsRedirection();
 app.MapControllers();
- 
+
 app.Run();
