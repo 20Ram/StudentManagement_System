@@ -152,7 +152,8 @@ namespace CrudOperation.Service
                 4. Class schedules and announcements.
                 5. Teacher and student information.
                 6. Documents and available records.
-                7. General questions about using the system.
+                7. Payment Related Information Paid, PaymentDue,Fee Amount available records.
+                8. General questions about using the system.
                 Only provide information that is available in the context supplied to you and that the current user is authorized to access.
 
                 APPLICATION DATA
