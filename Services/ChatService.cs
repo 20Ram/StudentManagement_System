@@ -153,7 +153,10 @@ namespace CrudOperation.Service
                 5. Teacher and student information.
                 6. Documents and available records.
                 7. Payment Related Information Paid, PaymentDue,Fee Amount available records.
-                8. General questions about using the system.
+                8. How do I pay my fee?.
+                9. What is my pending fee status?.
+                10. Where can I view my payment history?.
+                11. General questions about using the system.
                 Only provide information that is available in the context supplied to you and that the current user is authorized to access.
 
                 APPLICATION DATA

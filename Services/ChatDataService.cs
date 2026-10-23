@@ -171,8 +171,6 @@ namespace CrudOperation.Service
                 """;
         }
 
-
-
         public async Task<string> GetDocumentContextAsync(
             string userId,
             string role)
@@ -232,5 +230,38 @@ namespace CrudOperation.Service
                     $"Uploaded: {d.UploadedAt:yyyy-MM-dd HH:mm}"));
         }
 
+        public async Task<string> GetFeeContextAsync(string studentId)
+        {
+            if (!int.TryParse(studentId, out int id))
+            {
+                return "The authenticated student ID is invalid.";
+            }
+
+            var fees = await _context.StudentFees
+                .AsNoTracking()
+                .Where(f => f.StudentId == id) 
+                .Select(f => new
+                {
+                    f.PaidAmount,
+                    f.TotalAmount,
+                    f.DueDate,
+                    f.Title,
+                })
+                .ToListAsync(); 
+
+            if (fees.Count == 0)
+            {
+                return "No fee details were found for this account.";
+            }
+
+            var feeDetailsList = fees.Select(f => $"""
+                - Title: {f.Title}
+                Paid Amount: {f.PaidAmount}
+                Total Amount: {f.TotalAmount}
+                Due Date: {f.DueDate:yyyy-MM-dd}
+                """);
+
+            return "Authorized student Fee Details:\n" + string.Join("\n", feeDetailsList);
+        }
     }
 }

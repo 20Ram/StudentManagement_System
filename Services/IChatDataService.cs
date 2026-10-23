@@ -11,5 +11,7 @@ namespace CrudOperation.Service
 
         Task<string> GetDocumentContextAsync(
             string userId, string role);
+        
+        Task<string> GetFeeContextAsync(string studentId);
     }
 }
