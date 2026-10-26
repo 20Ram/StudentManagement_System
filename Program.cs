@@ -1,21 +1,28 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using CrudOperation.Data;
 using CrudOperation.Service;
+using CrudOperation.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Security.Claims;
 using System.Threading.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi;
-using DotNetEnv;
+using DotNetEnv; 
 
-// Env.Load();
+
 Env.Load(Path.Combine(
     Directory.GetCurrentDirectory(),
     ".env"
 ));
 var builder = WebApplication.CreateBuilder(args);
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException(
+        "Database connection string is missing.");
+}
 
 builder.Services.AddControllers();
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -32,6 +39,8 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 builder.Services.AddScoped<IStudentService, StudentService>();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 builder.Services.AddHttpClient<IChatService, ChatService>();
 builder.Services.AddScoped<IChatDataService, ChatDataService>();
 builder.Services.AddScoped<IFeePaymentAmountProvider, FeePaymentAmountProvider>();
@@ -69,9 +78,26 @@ builder.Services.AddRateLimiter(options =>
             }));
 });
 
+ 
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["SecretKey"];
+var issuer = jwtSettings["Issuer"];
+var audience = jwtSettings["Audience"];
+
+if (string.IsNullOrWhiteSpace(secretKey) ||
+    Encoding.UTF8.GetByteCount(secretKey) < 32)
+{
+    throw new InvalidOperationException(
+        "JWT SecretKey must be configured with at least 32 bytes.");
+}
+
+if (string.IsNullOrWhiteSpace(issuer) ||
+    string.IsNullOrWhiteSpace(audience))
+{
+    throw new InvalidOperationException(
+        "JWT Issuer and Audience must be configured.");
+}
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -83,8 +109,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
 
-            ValidIssuer = jwtSettings["Issuer"],
-            ValidAudience = jwtSettings["Audience"],
+            ValidIssuer =   issuer,
+            ValidAudience =  audience ,
 
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(secretKey!)
@@ -94,12 +120,20 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+
+if (allowedOrigins.Length == 0 || allowedOrigins.Any(string.IsNullOrWhiteSpace))
+{
+    throw new InvalidOperationException(
+        "Configure at least one valid CORS origin.");
+}
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy
-            .AllowAnyOrigin()
+            .WithOrigins(allowedOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -123,6 +157,8 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+
+app.UseExceptionHandler();
 
 app.UseSwagger();
 app.UseSwaggerUI();

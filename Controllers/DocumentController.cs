@@ -19,8 +19,6 @@ namespace CrudOperation.Controllers
     [HttpPost("upload")]
     public async Task<IActionResult> Upload([FromForm] DocumentUploadDto dto)
     {
-      try
-      {
         var userInfo = GetCurrentUser();
         if (userInfo == null) 
         { 
@@ -28,19 +26,14 @@ namespace CrudOperation.Controllers
         }
         var result = await _documentService.UploadAsync(
           dto,userInfo.Value.UserId, userInfo.Value.Role);
-        return Ok(new 
-        { 
-          message = "Document uploaded successfully.", document = result 
-        });
-      }
-      catch (Exception ex)
-      {
-        return BadRequest(new
+        
+        return Ok(new
         {
-          message = ex.Message
+        message = "Document uploaded successfully.",
+        document = result
         });
-      }
     }
+  
     [Authorize(Roles = "Admin,Teacher,Student")]
     [HttpGet("{id}/view")]
     public async Task<IActionResult> ViewDocument(int id)
@@ -65,24 +58,21 @@ namespace CrudOperation.Controllers
     [HttpGet("{id}/download")] 
     public async Task<IActionResult> Download(int id) 
     { 
-      try 
-      { 
-        var userInfo = GetCurrentUser(); 
+        var userInfo = GetCurrentUser();
+
         if (userInfo == null) 
         { 
           return Unauthorized(); 
         } 
-        var result = await _documentService.GetFileAsync( id, userInfo.Value.UserId, userInfo.Value.Role); 
+
+        var result = await _documentService.GetFileAsync( id, userInfo.Value.UserId, userInfo.Value.Role);
+
         if (result == null) 
         { 
           return NotFound(new { message = "Document not found." }); 
         } 
         return File( result.Value.FileBytes, result.Value.ContentType, result.Value.FileName ); 
-        } 
-        catch (Exception ex) 
-        { 
-          return BadRequest(new { message = ex.Message }); 
-        }    
+            
     }
     private (int UserId, string Role)? GetCurrentUser() 
     { 
@@ -124,8 +114,6 @@ namespace CrudOperation.Controllers
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-     try
-      {
         var userInfo = GetCurrentUser();
 
         if (userInfo == null)
@@ -137,14 +125,6 @@ namespace CrudOperation.Controllers
         {
             message = "Document deleted successfully."
         });
-      }
-      catch (Exception ex)
-      {
-        return BadRequest(new
-        {
-            message = ex.Message
-        });
-      }
     }
   }  
 }
