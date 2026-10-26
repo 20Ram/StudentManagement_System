@@ -3,7 +3,6 @@ using CrudOperation.DTOs;
 using CrudOperation.Service;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
 namespace CrudOperation.Controllers
 {
     [ApiController]
@@ -18,7 +17,6 @@ namespace CrudOperation.Controllers
             _fees = fees;
         }
 
-        // Admin: assign a fee to a student.
         [HttpPost]
         [Authorize(Roles = "Admin")]
         public Task<IActionResult> Create([FromBody] CreateFeeDto dto, CancellationToken ct) =>
@@ -27,8 +25,7 @@ namespace CrudOperation.Controllers
                 var created = await _fees.CreateAsync(dto, GetEmail(), ct);
                 return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
             });
-
-        // Admin: list all fees. ?studentId=&status=paid|unpaid|partial|overdue&pageNumber=&pageSize=
+ 
         [HttpGet]
         [Authorize(Roles = "Admin")]
         public Task<IActionResult> GetAll(
@@ -36,8 +33,7 @@ namespace CrudOperation.Controllers
             [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20,
             CancellationToken ct = default) =>
             Run(async () => Ok(await _fees.GetAllAsync(studentId, status, pageNumber, pageSize, ct)));
-
-        // Student: my own fees (what I can pay).
+ 
         [HttpGet("my")]
         [Authorize(Roles = "Student")]
         public Task<IActionResult> My(CancellationToken ct) =>
@@ -61,7 +57,6 @@ namespace CrudOperation.Controllers
                 return fee == null ? NotFound(new { message = "Fee not found." }) : Ok(fee);
             });
 
-        // Admin: delete a fee that has no payment activity.
         [HttpDelete("{id:int}")]
         [Authorize(Roles = "Admin")]
         public Task<IActionResult> Delete(int id, CancellationToken ct) =>

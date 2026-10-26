@@ -78,30 +78,30 @@ namespace CrudOperation.Controllers
             });
 
 
-        // [HttpPost("webhook")]
-        // [AllowAnonymous]
-        // [RequestSizeLimit(1_000_000)]
-        // public async Task<IActionResult> Webhook(CancellationToken ct)
-        // {
-        //     // The signature is computed over the exact bytes Razorpay sent - read them raw.
-        //     using var ms = new MemoryStream();
-        //     await Request.Body.CopyToAsync(ms, ct);
-        //     byte[] rawBody = ms.ToArray();
+        [HttpPost("webhook")]
+        [AllowAnonymous]
+        [RequestSizeLimit(1_000_000)]
+        public async Task<IActionResult> Webhook(CancellationToken ct)
+        {
+            // The signature is computed over the exact bytes Razorpay sent - read them raw.
+            using var ms = new MemoryStream();
+            await Request.Body.CopyToAsync(ms, ct);
+            byte[] rawBody = ms.ToArray();
 
-        //     string? signature = Request.Headers["X-Razorpay-Signature"].FirstOrDefault();
+            string? signature = Request.Headers["X-Razorpay-Signature"].FirstOrDefault();
 
-        //     try
-        //     {
-        //         bool ok = await _payments.HandleWebhookAsync(rawBody, signature, ct);
-        //         return ok ? Ok() : BadRequest();
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         // 500 tells Razorpay to retry later (it retries for up to 24 hours).
-        //         _logger.LogError(ex, "Razorpay webhook processing failed.");
-        //         return StatusCode(500);
-        //     }
-        // }
+            try
+            {
+                bool ok = await _payments.HandleWebhookAsync(rawBody, signature, ct);
+                return ok ? Ok() : BadRequest();
+            }
+            catch (Exception ex)
+            {
+                // 500 tells Razorpay to retry later (it retries for up to 24 hours).
+                _logger.LogError(ex, "Razorpay webhook processing failed.");
+                return StatusCode(500);
+            }
+        }
 
         private async Task<IActionResult> Run(Func<Task<IActionResult>> action)
         {

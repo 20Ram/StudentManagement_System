@@ -230,75 +230,75 @@ namespace CrudOperation.Service
         }
 
  
-        // public async Task<bool> HandleWebhookAsync(
-        //     byte[] rawBody, string? signatureHeader, CancellationToken cancellationToken = default)
-        // {
-        //     string webhookSecret = GetSetting("RAZORPAY_WEBHOOK_SECRET");
+        public async Task<bool> HandleWebhookAsync(
+            byte[] rawBody, string? signatureHeader, CancellationToken cancellationToken = default)
+        {
+            string webhookSecret = GetSetting("RAZORPAY_WEBHOOK_SECRET");
 
-        //     if (string.IsNullOrWhiteSpace(signatureHeader) ||
-        //         !IsValidHmacHex(webhookSecret, rawBody, signatureHeader.Trim()))
-        //     {
-        //         return false;
-        //     }
+            if (string.IsNullOrWhiteSpace(signatureHeader) ||
+                !IsValidHmacHex(webhookSecret, rawBody, signatureHeader.Trim()))
+            {
+                return false;
+            }
 
-        //     JsonDocument document;
-        //     try
-        //     {
-        //         document = JsonDocument.Parse(rawBody);
-        //     }
-        //     catch (JsonException ex)
-        //     { 
-        //         _logger.LogError(ex, "Razorpay webhook body was signed but is not valid JSON.");
-        //         return true;
-        //     }
+            JsonDocument document;
+            try
+            {
+                document = JsonDocument.Parse(rawBody);
+            }
+            catch (JsonException ex)
+            { 
+                _logger.LogError(ex, "Razorpay webhook body was signed but is not valid JSON.");
+                return true;
+            }
 
-        //     using (document)
-        //     {
-        //         var root = document.RootElement;
-        //         string? evt = GetString(root, "event");
-
-                
-        //         if (evt != "payment.captured" && evt != "order.paid" && evt != "payment.failed")
-        //             return true;
-
-        //         if (!TryGetPaymentEntity(root, out var entity))
-        //             return true;
-
-        //         string? orderId = GetString(entity, "order_id");
-        //         string? paymentId = GetString(entity, "id");
-        //         if (string.IsNullOrWhiteSpace(orderId) || string.IsNullOrWhiteSpace(paymentId))
-        //             return true;
-
-        //         var tx = await _context.PaymentTransactions
-        //             .AsNoTracking()
-        //             .SingleOrDefaultAsync(x => x.RazorpayOrderId == orderId, cancellationToken);
+            using (document)
+            {
+                var root = document.RootElement;
+                string? evt = GetString(root, "event");
 
                 
-        //         if (tx == null) return true;
+                if (evt != "payment.captured" && evt != "order.paid" && evt != "payment.failed")
+                    return true;
 
-        //         if (evt == "payment.failed")
-        //         {
-        //             string reason = GetString(entity, "error_description") ?? "Payment failed";
-        //             await RecordFailureAsync(tx.Id, reason, cancellationToken);
-        //             return true;
-        //         }
+                if (!TryGetPaymentEntity(root, out var entity))
+                    return true;
+
+                string? orderId = GetString(entity, "order_id");
+                string? paymentId = GetString(entity, "id");
+                if (string.IsNullOrWhiteSpace(orderId) || string.IsNullOrWhiteSpace(paymentId))
+                    return true;
+
+                var tx = await _context.PaymentTransactions
+                    .AsNoTracking()
+                    .SingleOrDefaultAsync(x => x.RazorpayOrderId == orderId, cancellationToken);
+
+                
+                if (tx == null) return true;
+
+                if (evt == "payment.failed")
+                {
+                    string reason = GetString(entity, "error_description") ?? "Payment failed";
+                    await RecordFailureAsync(tx.Id, reason, cancellationToken);
+                    return true;
+                }
 
              
-        //         bool amountOk = GetLong(entity, "amount") == MoneyHelper.ToPaise(tx.Amount);
-        //         bool currencyOk = GetString(entity, "currency") == tx.Currency;
-        //         if (!amountOk || !currencyOk)
-        //         {
+                bool amountOk = GetLong(entity, "amount") == MoneyHelper.ToPaise(tx.Amount);
+                bool currencyOk = GetString(entity, "currency") == tx.Currency;
+                if (!amountOk || !currencyOk)
+                {
                  
-        //             _logger.LogError(
-        //                 "Webhook amount/currency mismatch for order {Order}, payment {Payment}. Manual review needed.",
-        //                 orderId, paymentId);
-        //             return true;
-        //         }
+                    _logger.LogError(
+                        "Webhook amount/currency mismatch for order {Order}, payment {Payment}. Manual review needed.",
+                        orderId, paymentId);
+                    return true;
+                }
 
-        //         await FinalizePaymentAsync(tx.Id, paymentId, cancellationToken);
-        //         return true;
-        //     }
-        // }
+                await FinalizePaymentAsync(tx.Id, paymentId, cancellationToken);
+                return true;
+            }
+        }
  
         private async Task RecordFailureAsync(int transactionId, string reason, CancellationToken cancellationToken)
         {

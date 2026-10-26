@@ -10,6 +10,6 @@ namespace CrudOperation.Service
         Task<PaymentVerificationResult> VerifyPaymentAsync(VerifyPaymentDto dto, string userId, bool isAdmin, CancellationToken cancellationToken = default);
         Task<IReadOnlyList<PaymentHistoryDto>> GetHistoryAsync(string userId, bool isAdmin, CancellationToken cancellationToken = default);
         Task<PaymentHistoryDto?> GetByIdAsync(int id, string userId, bool isAdmin, CancellationToken cancellationToken = default);
-        // Task<bool> HandleWebhookAsync(byte[] rawBody, string? signatureHeader, CancellationToken cancellationToken = default);
+        Task<bool> HandleWebhookAsync(byte[] rawBody, string? signatureHeader, CancellationToken cancellationToken = default);
     }
 }
