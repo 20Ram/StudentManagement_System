@@ -76,7 +76,7 @@ namespace CrudOperation.Controllers
             {
                 return StatusCode(ex.StatusCode, new { message = ex.Message });
             }
-        }
+        }    
 
         private bool TryGetUserId(out int userId) =>
             int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out userId);
