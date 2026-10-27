@@ -41,7 +41,7 @@ namespace CrudOperation.Service
 
             long amountInPaise = MoneyHelper.ToPaise(fee.Amount);
             string ownerUserId = fee.OwnerUserId.ToString(CultureInfo.InvariantCulture);
- 
+
             var pending = await _context.PaymentTransactions
                 .Where(x => x.FeeItemId == feeItemId && x.Status == PaymentStatus.Pending)
                 .OrderByDescending(x => x.CreatedAtUtc)
@@ -56,7 +56,7 @@ namespace CrudOperation.Service
             {
                 foreach (var stale in pending)
                 {
- 
+
                     bool hadFailure = !string.IsNullOrEmpty(stale.FailureReason);
                     stale.Status = hadFailure ? PaymentStatus.Failed : PaymentStatus.Cancelled;
                     if (!hadFailure) stale.FailureReason = "Superseded by a newer order.";
@@ -136,7 +136,7 @@ namespace CrudOperation.Service
                 throw new PaymentException("Could not start payment. Please try again later.", 502);
             }
         }
- 
+
         public async Task<PaymentVerificationResult> VerifyPaymentAsync(
             VerifyPaymentDto dto, string userId, bool isAdmin, CancellationToken cancellationToken = default)
         {
@@ -146,7 +146,7 @@ namespace CrudOperation.Service
             var tx = await _context.PaymentTransactions
                 .AsNoTracking()
                 .SingleOrDefaultAsync(x => x.Id == dto.PaymentTransactionId, cancellationToken);
- 
+
             const string generic = "Payment verification failed.";
             if (tx == null || (!isAdmin && tx.UserId != userId) || tx.RazorpayOrderId != dto.RazorpayOrderId)
                 return new PaymentVerificationResult(false, generic);
@@ -158,18 +158,18 @@ namespace CrudOperation.Service
                     : new PaymentVerificationResult(false, generic);
             }
 
- 
+
             string payload = $"{dto.RazorpayOrderId}|{dto.RazorpayPaymentId}";
             if (!IsValidHmacHex(secret, Encoding.UTF8.GetBytes(payload), dto.RazorpaySignature))
                 return new PaymentVerificationResult(false, generic);
 
- 
+
             JsonElement p = await FetchPaymentAsync(keyId, secret, dto.RazorpayPaymentId, cancellationToken);
 
             string? status = GetString(p, "status");
 
             if (status == "authorized")
-            { 
+            {
                 return new PaymentVerificationResult(false,
                     "Payment is authorized but not captured yet. It will be confirmed automatically once captured.");
             }
@@ -207,7 +207,7 @@ namespace CrudOperation.Service
                 }
 
                 using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
-                return json.RootElement.Clone();    
+                return json.RootElement.Clone();
             }
             catch (HttpRequestException ex)
             {
@@ -227,9 +227,8 @@ namespace CrudOperation.Service
             }
         }
 
- 
-        public async Task<bool> HandleWebhookAsync(
-            byte[] rawBody, string? signatureHeader, CancellationToken cancellationToken = default)
+
+        public async Task<bool> HandleWebhookAsync(byte[] rawBody, string? signatureHeader, CancellationToken cancellationToken = default)
         {
             string webhookSecret = GetSetting("RAZORPAY_WEBHOOK_SECRET");
 
@@ -245,7 +244,7 @@ namespace CrudOperation.Service
                 document = JsonDocument.Parse(rawBody);
             }
             catch (JsonException ex)
-            { 
+            {
                 _logger.LogError(ex, "Razorpay webhook body was signed but is not valid JSON.");
                 return true;
             }
@@ -255,7 +254,7 @@ namespace CrudOperation.Service
                 var root = document.RootElement;
                 string? evt = GetString(root, "event");
 
-                
+
                 if (evt != "payment.captured" && evt != "order.paid" && evt != "payment.failed")
                     return true;
 
@@ -271,7 +270,7 @@ namespace CrudOperation.Service
                     .AsNoTracking()
                     .SingleOrDefaultAsync(x => x.RazorpayOrderId == orderId, cancellationToken);
 
-                
+
                 if (tx == null) return true;
 
                 if (evt == "payment.failed")
@@ -281,12 +280,27 @@ namespace CrudOperation.Service
                     return true;
                 }
 
-             
                 bool amountOk = GetLong(entity, "amount") == MoneyHelper.ToPaise(tx.Amount);
                 bool currencyOk = GetString(entity, "currency") == tx.Currency;
+
+                string? paymentStatus = GetString(entity, "status");
+
+                bool isCaptured =
+                    entity.TryGetProperty("captured", out var capturedElement)
+                    && capturedElement.ValueKind == JsonValueKind.True;
+
+                if (paymentStatus != "captured" || !isCaptured)
+                {
+                    _logger.LogWarning(
+                        "Ignoring non-captured Razorpay payment. Order {OrderId}, Status {Status}",
+                        orderId,
+                        paymentStatus);
+
+                    return true;
+                }
+
                 if (!amountOk || !currencyOk)
                 {
-                 
                     _logger.LogError(
                         "Webhook amount/currency mismatch for order {Order}, payment {Payment}. Manual review needed.",
                         orderId, paymentId);
@@ -297,7 +311,7 @@ namespace CrudOperation.Service
                 return true;
             }
         }
- 
+
         private async Task RecordFailureAsync(int transactionId, string reason, CancellationToken cancellationToken)
         {
             string trimmed = reason.Length > 250 ? reason.Substring(0, 250) : reason;
@@ -306,11 +320,11 @@ namespace CrudOperation.Service
                 .Where(x => x.Id == transactionId && x.Status == PaymentStatus.Pending)
                 .ExecuteUpdateAsync(s => s.SetProperty(x => x.FailureReason, trimmed), cancellationToken);
         }
- 
+
         private async Task FinalizePaymentAsync(
             int transactionId, string razorpayPaymentId, CancellationToken cancellationToken)
         {
-            
+
             _context.ChangeTracker.Clear();
 
             await using var dbTx = await _context.Database.BeginTransactionAsync(cancellationToken);
@@ -323,7 +337,22 @@ namespace CrudOperation.Service
             if (tx == null || tx.Status == PaymentStatus.Paid)
             {
                 await dbTx.RollbackAsync(cancellationToken);
-                return;    
+                return;
+            }
+
+            if (tx.Status == PaymentStatus.Paid)
+            {
+                if (tx.RazorpayPaymentId != razorpayPaymentId)
+                {
+                    _logger.LogCritical(
+                        "Possible duplicate successful payment. Transaction {TransactionId}, existing payment {ExistingPaymentId}, incoming payment {IncomingPaymentId}. Manual reconciliation required.",
+                        tx.Id,
+                        tx.RazorpayPaymentId,
+                        razorpayPaymentId);
+                }
+
+                await dbTx.RollbackAsync(cancellationToken);
+                return;
             }
 
             var feeRows = await _context.StudentFees
@@ -338,7 +367,7 @@ namespace CrudOperation.Service
 
             if (fee == null)
             {
-                _logger.LogError("Fee {FeeId} not found while finalizing payment {TxId}.", tx.FeeItemId, tx.Id);
+                _logger.LogError("Fee {FeeId} not found while finalizing dotnet {TxId}.", tx.FeeItemId, tx.Id);
                 tx.FailureReason = "Fee record missing; manual review required.";
             }
             else
@@ -349,7 +378,7 @@ namespace CrudOperation.Service
 
                 if (applied < tx.Amount)
                 {
- 
+
                     decimal excess = tx.Amount - applied;
                     string note = $"Overpaid by {excess.ToString("0.00", CultureInfo.InvariantCulture)}; refund required.";
                     tx.FailureReason = note.Length > 250 ? note.Substring(0, 250) : note;
@@ -363,7 +392,7 @@ namespace CrudOperation.Service
             await dbTx.CommitAsync(cancellationToken);
         }
 
- 
+
         public async Task<IReadOnlyList<PaymentHistoryDto>> GetHistoryAsync(
             string userId, bool isAdmin, CancellationToken cancellationToken = default)
         {
@@ -409,7 +438,7 @@ namespace CrudOperation.Service
                 PaidAtUtc = x.PaidAtUtc
             }).SingleOrDefaultAsync(cancellationToken);
         }
- 
+
         private static PaymentOrderResponseDto ToOrderResponse(PaymentTransaction tx, string keyId) => new()
         {
             PaymentTransactionId = tx.Id,

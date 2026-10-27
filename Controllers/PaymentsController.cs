@@ -83,7 +83,7 @@ namespace CrudOperation.Controllers
         [RequestSizeLimit(1_000_000)]
         public async Task<IActionResult> Webhook(CancellationToken ct)
         {
-            // The signature is computed over the exact bytes Razorpay sent - read them raw.
+         
             using var ms = new MemoryStream();
             await Request.Body.CopyToAsync(ms, ct);
             byte[] rawBody = ms.ToArray();

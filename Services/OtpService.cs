@@ -8,12 +8,20 @@ namespace CrudOperation.Service
   public class OtpService : IOtpService
   {
     private readonly AppDbContext _context;
+    private const int MaxAttempts = 5;
     public OtpService(AppDbContext context)
     {
       _context = context;
     }
     public async Task<string> GenerateOtpAsync(string email)
     {
+      var oldOtps = await _context.OtpVerifications
+                .Where(o => o.Email == email && !o.IsUsed).ToListAsync();
+
+      foreach (var oldOtp in oldOtps){
+          oldOtp.IsUsed = true;
+      }
+
       var otpNumber = RandomNumberGenerator.GetInt32(100000, 1000000);
       var otp = otpNumber.ToString();
       var otpVerification = new OtpVerification
@@ -29,13 +37,16 @@ namespace CrudOperation.Service
       await _context.SaveChangesAsync();
       return otp;
     }
-
     public async Task<bool> VerifyOtpAsync(string email, string otp)
     {
+      if (otp.Length != 6 || !otp.All(char.IsDigit))
+        return false;
+
       var otpRecord = await _context.OtpVerifications
         .Where(o => o.Email == email && !o.IsUsed)
         .OrderByDescending(o => o.CreatedAt)
         .FirstOrDefaultAsync();
+        
       if (otpRecord == null)
       {
         return false;
@@ -46,12 +57,12 @@ namespace CrudOperation.Service
         await _context.SaveChangesAsync();
         return false;
       }
-      if (otpRecord.Attempts > 6)
+      if (otpRecord.Attempts >= MaxAttempts)
       {
         return false;
       }
       otpRecord.Attempts++;
-
+       
       if (otpRecord.OtpHash != otp)
       {
         await _context.SaveChangesAsync();

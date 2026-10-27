@@ -70,6 +70,7 @@ namespace CrudOperation.Data
                 e.Property(x => x.TotalAmount).HasPrecision(10, 2);
                 e.Property(x => x.PaidAmount).HasPrecision(10, 2);
             });
+  
         }
     }
 }
