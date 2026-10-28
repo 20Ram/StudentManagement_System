@@ -1,5 +1,5 @@
 
-namespace CrudOperation.DTOs.Subjects;
+namespace CrudOperation.DTOs;
 
 public class SubjectResponseDto
 {

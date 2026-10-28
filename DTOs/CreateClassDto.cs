@@ -1,7 +1,7 @@
 
 using System.ComponentModel.DataAnnotations;
 
-namespace CrudOperation.DTO;
+namespace CrudOperation.DTOs;
 
 public class CreateClassDto
 {

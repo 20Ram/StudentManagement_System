@@ -5,6 +5,7 @@ using CrudOperation.Service;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace CrudOperation.Controllers
 {
@@ -15,11 +16,16 @@ namespace CrudOperation.Controllers
   {
     private readonly AppDbContext _context;
     private readonly IEmailService _emailService;
-    public TeacherController(AppDbContext context, IEmailService emailService)
+    private readonly IAcademicAccessService _access;
+    public TeacherController(AppDbContext context, IEmailService emailService, IAcademicAccessService access)
     {
       _context = context;
       _emailService = emailService;
+      _access = access;
     }
+
+    private int CurrentUserId =>
+      int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : 0;
 
     [HttpGet("dashboard")]
     public IActionResult Dashboard()
@@ -34,12 +40,41 @@ namespace CrudOperation.Controllers
       });
     }
 
+    // [HttpGet("students")]
+    // public async Task<IActionResult> GetStudents()
+    // {
+    //   var students = await _context.Users
+    //       .Where(u => u.Roll == "Student" && u.IsEmailVerified == true)
+    //       .ToListAsync();
+
+    //   return Ok(students);
+    // }
+
     [HttpGet("students")]
     public async Task<IActionResult> GetStudents()
     {
-      var students = await _context.Users
-          .Where(u => u.Roll == "Student" && u.IsEmailVerified == true)
-          .ToListAsync();
+      var userId = CurrentUserId;
+
+      var students = await _context.StudentEnrollments
+        .AsNoTracking()
+        .Where(e => e.IsCurrent && e.Student.IsActive &&
+          _context.TeacherAssignments.Any(a =>
+            a.Teacher.UserId == userId &&
+            a.Teacher.IsActive &&
+            a.Subject.IsActive &&
+            a.Subject.ClassId == e.ClassId))
+        .Select(e => new
+        {
+          e.Student.User!.Id,
+          e.Student.User.Email,
+          e.Student.User.Name,
+          e.Student.User.Roll,
+          e.Student.User.IsEmailVerified,
+          e.Student.User.IsActive
+        })
+        .Distinct()
+        .OrderBy(u => u.Name)
+        .ToListAsync();
 
       return Ok(students);
     }
@@ -73,6 +108,7 @@ namespace CrudOperation.Controllers
           message = "Student not found"
         });
       }
+      
       return Ok(new
       {
         student,

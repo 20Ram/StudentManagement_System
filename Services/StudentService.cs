@@ -86,13 +86,16 @@ namespace CrudOperation.Service
 
             if (student == null)
                 return null;
-
+            
             var studentDetails = await _context.Students
                 .Where(s => s.Email == email)
                 .Select(s => new
                 {
                     s.Age,
-                    s.Course,
+                    Course = _context.StudentEnrollments
+                                     .Where(e => e.StudentId == s.Id && e.IsCurrent)
+                                     .Select(e => e.Class.Course.Name)
+                                     .FirstOrDefault() ?? s.Course,
                     s.Marks
                 })
                 .FirstOrDefaultAsync();

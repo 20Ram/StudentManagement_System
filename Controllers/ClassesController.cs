@@ -1,5 +1,4 @@
-
-using CrudOperation.DTO;
+using CrudOperation.DTOs;
 using CrudOperation.Service;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

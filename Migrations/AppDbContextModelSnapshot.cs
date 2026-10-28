@@ -352,7 +352,8 @@ namespace CrudOperation.Migrations
 
                     b.HasIndex("ClassId");
 
-                    b.HasIndex("StudentId");
+                    b.HasIndex("StudentId", "ClassId")
+                        .IsUnique();
 
                     b.ToTable("StudentEnrollments");
                 });
@@ -478,7 +479,8 @@ namespace CrudOperation.Migrations
 
                     b.HasIndex("SubjectId");
 
-                    b.HasIndex("TeacherId");
+                    b.HasIndex("TeacherId", "SubjectId")
+                        .IsUnique();
 
                     b.ToTable("TeacherAssignments");
                 });
@@ -494,6 +496,9 @@ namespace CrudOperation.Migrations
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("longtext");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsEmailVerified")
                         .HasColumnType("tinyint(1)");

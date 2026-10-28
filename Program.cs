@@ -46,6 +46,7 @@ builder.Services.AddScoped<IChatDataService, ChatDataService>();
 builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<IClassService, ClassService>();
 builder.Services.AddScoped<ISubjectService, SubjectService>();
+builder.Services.AddScoped<IAcademicAccessService, AcademicAccessService>();
 builder.Services.AddScoped<IFeePaymentAmountProvider, FeePaymentAmountProvider>();
 builder.Services.AddScoped<IFeeService, FeeService>();   
 builder.Services.AddHttpClient<IRazorpayPaymentService, RazorpayPaymentService>(c =>

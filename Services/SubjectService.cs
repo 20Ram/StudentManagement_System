@@ -1,9 +1,7 @@
-
 using CrudOperation.Data;
-using CrudOperation.DTOs.Subjects;
+using CrudOperation.DTOs;
 using CrudOperation.Models;
 using Microsoft.EntityFrameworkCore;
-
 namespace CrudOperation.Service;
 
 public class SubjectService : ISubjectService

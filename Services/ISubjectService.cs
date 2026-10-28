@@ -1,5 +1,5 @@
 
-using CrudOperation.DTOs.Subjects;
+using CrudOperation.DTOs;
 
 namespace CrudOperation.Service;
 

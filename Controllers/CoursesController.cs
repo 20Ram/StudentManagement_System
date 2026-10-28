@@ -1,4 +1,4 @@
-using CrudOperation.DTO;
+using CrudOperation.DTOs;
 using CrudOperation.Service;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,6 +19,7 @@ public class CoursesController : ControllerBase
 
     // GET: /api/Courses
     [HttpGet]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetAll(
         [FromQuery] bool includeInactive = false)
     {
@@ -28,6 +29,7 @@ public class CoursesController : ControllerBase
 
     // GET: /api/Courses/1
     [HttpGet("{id:int}")]
+    [Authorize(Roles = "Admin,Teacher")]
     public async Task<IActionResult> GetById(int id)
     {
         if (id <= 0)
@@ -47,6 +49,7 @@ public class CoursesController : ControllerBase
 
     // POST: /api/Courses
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create(
         [FromBody] CreateCourseDto dto)
     {
@@ -76,6 +79,7 @@ public class CoursesController : ControllerBase
 
     // PUT: /api/Courses/1
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update(
         int id,
         [FromBody] UpdateCourseDto dto)
@@ -115,6 +119,7 @@ public class CoursesController : ControllerBase
 
     // PATCH: /api/Courses/1/deactivate
     [HttpPatch("{id:int}/deactivate")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Deactivate(int id)
     {
         if (id <= 0)

@@ -1,4 +1,4 @@
-namespace CrudOperation.DTO;
+namespace CrudOperation.DTOs;
 
 public class CourseResponseDto
 {

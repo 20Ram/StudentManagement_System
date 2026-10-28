@@ -1,5 +1,5 @@
 using CrudOperation.Data;
-using CrudOperation.DTO;
+using CrudOperation.DTOs;
 using Microsoft.EntityFrameworkCore;
 
 namespace CrudOperation.Service;

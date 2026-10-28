@@ -1,4 +1,4 @@
-using CrudOperation.DTO;
+using CrudOperation.DTOs;
 
 namespace CrudOperation.Service;
 
