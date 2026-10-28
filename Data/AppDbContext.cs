@@ -17,7 +17,13 @@ namespace CrudOperation.Data
         public DbSet<ChatMessage> ChatMessages { get; set; } = null!;
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<PaymentTransaction> PaymentTransactions { get; set; } = null!;
+        public DbSet<Course> Courses { get; set; }
+        public DbSet<Class> Classes { get; set; }
+        public DbSet<Subject> Subjects { get; set; }
+        public DbSet<StudentEnrollment> StudentEnrollments { get; set; }
+        public DbSet<TeacherAssignment> TeacherAssignments { get; set; }
         public DbSet<StudentFee> StudentFees => Set<StudentFee>();
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -42,7 +48,75 @@ namespace CrudOperation.Data
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<PaymentTransaction>(e => {
+            modelBuilder.Entity<Class>()
+                .HasOne(c => c.Course)
+                .WithMany(c => c.Classes)
+                .HasForeignKey(c => c.CourseId);
+
+            modelBuilder.Entity<Subject>()
+                .HasOne(s => s.Class)
+                .WithMany(c => c.Subjects)
+                .HasForeignKey(s => s.ClassId);
+
+            modelBuilder.Entity<StudentEnrollment>()
+                .HasOne(e => e.Student)
+                .WithMany()
+                .HasForeignKey(e => e.StudentId);
+
+            modelBuilder.Entity<StudentEnrollment>()
+                .HasOne(e => e.Class)
+                .WithMany(c => c.StudentEnrollments)
+                .HasForeignKey(e => e.ClassId);
+
+            modelBuilder.Entity<TeacherAssignment>()
+                .HasOne(t => t.Teacher)
+                .WithMany()
+                .HasForeignKey(t => t.TeacherId);
+
+            modelBuilder.Entity<TeacherAssignment>()
+                .HasOne(t => t.Subject)
+                .WithMany(s => s.TeacherAssignments)
+                .HasForeignKey(t => t.SubjectId);
+
+            modelBuilder.Entity<Class>(e =>
+            {
+                e.HasKey(c => c.Id);
+                e.Property(c => c.Section).HasMaxLength(10).IsRequired();
+                e.Property(c => c.AcademicYear).HasMaxLength(20).IsRequired();
+                e.Property(c => c.Semester).IsRequired();
+
+                e.HasOne(c => c.Course)
+                 .WithMany(course => course.Classes)
+                 .HasForeignKey(c => c.CourseId)
+                 .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasIndex(c => new
+                {
+                    c.CourseId,
+                    c.Semester,
+                    c.Section,
+                    c.AcademicYear
+                }).IsUnique();
+            });
+
+            modelBuilder.Entity<Subject>(e =>
+            {
+                e.Property(s => s.Code)
+                    .HasMaxLength(20)
+                    .IsRequired();
+                e.Property(s => s.Name)
+                    .HasMaxLength(100)
+                    .IsRequired();
+                e.HasOne(s => s.Class)
+                    .WithMany(c => c.Subjects)
+                    .HasForeignKey(s => s.ClassId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                e.HasIndex(s => new { s.ClassId, s.Code })
+                    .IsUnique();
+            });
+
+            modelBuilder.Entity<PaymentTransaction>(e =>
+            {
                 e.HasKey(x => x.Id);
                 e.Property(x => x.Amount).HasPrecision(10, 2);
                 e.Property(x => x.Currency).HasMaxLength(3).IsRequired();
@@ -53,11 +127,11 @@ namespace CrudOperation.Data
                 e.Property(x => x.Status).HasMaxLength(20).IsRequired();
                 e.Property(x => x.FailureReason).HasMaxLength(250);
                 e.HasIndex(x => x.RazorpayOrderId).IsUnique();
- 
+
                 e.HasIndex(x => x.RazorpayPaymentId).IsUnique();
                 e.HasIndex(x => new { x.UserId, x.CreatedAtUtc });
                 e.HasIndex(x => new { x.FeeItemId, x.Status });
-  
+
                 e.HasOne<StudentFee>()
                     .WithMany()
                     .HasForeignKey(x => x.FeeItemId)
@@ -70,7 +144,15 @@ namespace CrudOperation.Data
                 e.Property(x => x.TotalAmount).HasPrecision(10, 2);
                 e.Property(x => x.PaidAmount).HasPrecision(10, 2);
             });
-  
+
+            modelBuilder.Entity<Course>(e =>
+            {
+                e.HasKey(c => c.Id);
+                e.Property(c => c.Code).HasMaxLength(20).IsRequired();
+                e.Property(c => c.Name).HasMaxLength(100).IsRequired();
+                e.HasIndex(c => c.Code).IsUnique();
+                e.Property(c => c.DurationYears).IsRequired();
+            });
         }
     }
 }

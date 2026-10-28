@@ -81,6 +81,73 @@ namespace CrudOperation.Migrations
                     b.ToTable("ChatMessages");
                 });
 
+            modelBuilder.Entity("CrudOperation.Models.Class", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AcademicYear")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<int>("CourseId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Section")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)");
+
+                    b.Property<int>("Semester")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseId", "Semester", "Section", "AcademicYear")
+                        .IsUnique();
+
+                    b.ToTable("Classes");
+                });
+
+            modelBuilder.Entity("CrudOperation.Models.Course", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<int>("DurationYears")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("Courses");
+                });
+
             modelBuilder.Entity("CrudOperation.Models.Document", b =>
                 {
                     b.Property<int>("Id")
@@ -261,6 +328,35 @@ namespace CrudOperation.Migrations
                     b.ToTable("Students");
                 });
 
+            modelBuilder.Entity("CrudOperation.Models.StudentEnrollment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ClassId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("EnrolledAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsCurrent")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("StudentId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClassId");
+
+                    b.HasIndex("StudentId");
+
+                    b.ToTable("StudentEnrollments");
+                });
+
             modelBuilder.Entity("CrudOperation.Models.StudentFee", b =>
                 {
                     b.Property<int>("Id")
@@ -293,6 +389,41 @@ namespace CrudOperation.Migrations
                     b.HasIndex("StudentId");
 
                     b.ToTable("StudentFees");
+                });
+
+            modelBuilder.Entity("CrudOperation.Models.Subject", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ClassId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<int>("Credits")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClassId", "Code")
+                        .IsUnique();
+
+                    b.ToTable("Subjects");
                 });
 
             modelBuilder.Entity("CrudOperation.Models.Teacher", b =>
@@ -329,6 +460,29 @@ namespace CrudOperation.Migrations
                     b.ToTable("Teachers");
                 });
 
+            modelBuilder.Entity("CrudOperation.Models.TeacherAssignment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("SubjectId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TeacherId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubjectId");
+
+                    b.HasIndex("TeacherId");
+
+                    b.ToTable("TeacherAssignments");
+                });
+
             modelBuilder.Entity("CrudOperation.Models.User", b =>
                 {
                     b.Property<int>("Id")
@@ -355,6 +509,17 @@ namespace CrudOperation.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("CrudOperation.Models.Class", b =>
+                {
+                    b.HasOne("CrudOperation.Models.Course", "Course")
+                        .WithMany("Classes")
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Course");
                 });
 
             modelBuilder.Entity("CrudOperation.Models.Document", b =>
@@ -396,6 +561,25 @@ namespace CrudOperation.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("CrudOperation.Models.StudentEnrollment", b =>
+                {
+                    b.HasOne("CrudOperation.Models.Class", "Class")
+                        .WithMany("StudentEnrollments")
+                        .HasForeignKey("ClassId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CrudOperation.Models.Student", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Class");
+
+                    b.Navigation("Student");
+                });
+
             modelBuilder.Entity("CrudOperation.Models.StudentFee", b =>
                 {
                     b.HasOne("CrudOperation.Models.Student", "Student")
@@ -405,6 +589,17 @@ namespace CrudOperation.Migrations
                         .IsRequired();
 
                     b.Navigation("Student");
+                });
+
+            modelBuilder.Entity("CrudOperation.Models.Subject", b =>
+                {
+                    b.HasOne("CrudOperation.Models.Class", "Class")
+                        .WithMany("Subjects")
+                        .HasForeignKey("ClassId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Class");
                 });
 
             modelBuilder.Entity("CrudOperation.Models.Teacher", b =>
@@ -418,9 +613,45 @@ namespace CrudOperation.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("CrudOperation.Models.TeacherAssignment", b =>
+                {
+                    b.HasOne("CrudOperation.Models.Subject", "Subject")
+                        .WithMany("TeacherAssignments")
+                        .HasForeignKey("SubjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CrudOperation.Models.Teacher", "Teacher")
+                        .WithMany()
+                        .HasForeignKey("TeacherId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Subject");
+
+                    b.Navigation("Teacher");
+                });
+
+            modelBuilder.Entity("CrudOperation.Models.Class", b =>
+                {
+                    b.Navigation("StudentEnrollments");
+
+                    b.Navigation("Subjects");
+                });
+
+            modelBuilder.Entity("CrudOperation.Models.Course", b =>
+                {
+                    b.Navigation("Classes");
+                });
+
             modelBuilder.Entity("CrudOperation.Models.Student", b =>
                 {
                     b.Navigation("Documents");
+                });
+
+            modelBuilder.Entity("CrudOperation.Models.Subject", b =>
+                {
+                    b.Navigation("TeacherAssignments");
                 });
 
             modelBuilder.Entity("CrudOperation.Models.User", b =>
