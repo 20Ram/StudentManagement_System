@@ -16,11 +16,9 @@ public class ClassesController : ControllerBase
     {
         _classService = classService;
     }
-
-    // GET /api/Classes
-    // GET /api/Classes?courseId=1
-    // GET /api/Classes?includeInactive=true
+ 
     [HttpGet]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetAll(
         [FromQuery] int? courseId = null,
         [FromQuery] bool includeInactive = false)
@@ -34,8 +32,8 @@ public class ClassesController : ControllerBase
         return Ok(classes);
     }
 
-    // GET /api/Classes/1
     [HttpGet("{id:int}")]
+    [Authorize(Roles = "Admin,Teacher")]
     public async Task<IActionResult> GetById(int id)
     {
         if (id <= 0)
@@ -49,8 +47,8 @@ public class ClassesController : ControllerBase
         return Ok(result);
     }
 
-    // POST /api/Classes
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create(CreateClassDto dto)
     {
         try
@@ -72,8 +70,8 @@ public class ClassesController : ControllerBase
         }
     }
 
-    // PUT /api/Classes/1
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update(
         int id,
         UpdateClassDto dto)
@@ -100,8 +98,9 @@ public class ClassesController : ControllerBase
         }
     }
 
-    // PATCH /api/Classes/1/deactivate
+    
     [HttpPatch("{id:int}/deactivate")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Deactivate(int id)
     {
         if (id <= 0)
