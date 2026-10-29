@@ -29,12 +29,11 @@ public class ClassRosterController : ControllerBase
         return int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)
                && await _access.TeacherHasClassAsync(userId, classId, ct);
     }
-
-    // GET /api/Classes/2/students
+ 
     [HttpGet("students")]
     public async Task<IActionResult> Students(int classId, CancellationToken ct)
     {
-        // 404 (not 403) so a teacher cannot probe which class ids exist.
+     
         if (!await CanAccessClassAsync(classId, ct))
             return NotFound(new { message = "Class not found." });
 
@@ -55,8 +54,7 @@ public class ClassRosterController : ControllerBase
 
         return Ok(students);
     }
-
-    // GET /api/Classes/2/subjects
+ 
     [HttpGet("subjects")]
     public async Task<IActionResult> Subjects(int classId, CancellationToken ct)
     {
