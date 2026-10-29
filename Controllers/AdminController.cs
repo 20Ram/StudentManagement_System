@@ -27,7 +27,9 @@ namespace CrudOperation.Controllers
         {
             var totalStudent = _context.Users.Count(u => u.Roll == "Student");
 
-            var reportAverage = _context.Users.Average(u => u.Student.Marks);
+            var reportAverage = _context.Users
+                                    .Where(u => u.Roll == "Student" && u.Student != null)
+                                    .Average(u => u.Student!.Marks);
 
             var totalTeacher = _context.Users.Count(u => u.Roll == "Teacher");
 
