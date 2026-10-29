@@ -20,9 +20,7 @@ public class MyAcademicsController : ControllerBase
 
     private bool TryGetUserId(out int userId) =>
         int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out userId);
-
-    // STUDENT: my current class, course and subjects (with teacher names)
-    // GET /api/my/academics
+        
     [HttpGet("academics")]
     [Authorize(Roles = "Student")]
     public async Task<IActionResult> MyAcademics(CancellationToken ct)
@@ -77,9 +75,7 @@ public class MyAcademicsController : ControllerBase
 
         return Ok(new { enrolled = true, @class = current, subjects });
     }
-
-    // TEACHER: every subject I teach, with its class and student count
-    // GET /api/my/teaching
+ 
     [HttpGet("teaching")]
     [Authorize(Roles = "Teacher")]
     public async Task<IActionResult> MyTeaching(CancellationToken ct)

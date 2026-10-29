@@ -55,7 +55,6 @@ public class TeacherAssignmentsController : ControllerBase
         return Ok(list);
     }
 
-    // POST /api/TeacherAssignments   { "teacherId": 3, "subjectId": 9 }
     [HttpPost]
     public async Task<IActionResult> Assign(AssignTeacherDto dto, CancellationToken ct)
     {
@@ -88,7 +87,6 @@ public class TeacherAssignmentsController : ControllerBase
         return Ok(new { message = "Teacher assigned successfully.", assignmentId = assignment.Id });
     }
 
-    // DELETE /api/TeacherAssignments/4
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Remove(int id, CancellationToken ct)
     {

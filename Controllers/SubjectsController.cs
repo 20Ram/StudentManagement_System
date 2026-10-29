@@ -19,6 +19,7 @@ public class SubjectsController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetAll(
         [FromQuery] int? classId,
         [FromQuery] bool includeInactive = false)
@@ -30,6 +31,7 @@ public class SubjectsController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
+    [Authorize(Roles = "Admin,Teacher")]
     public async Task<IActionResult> GetById(int id)
     {
         var subject = await _subjectService.GetByIdAsync(id);
@@ -41,6 +43,7 @@ public class SubjectsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create(CreateSubjectDto dto)
     {
         try
@@ -63,6 +66,7 @@ public class SubjectsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update(
         int id, UpdateSubjectDto dto)
     {
@@ -82,6 +86,7 @@ public class SubjectsController : ControllerBase
     }
 
     [HttpPatch("{id:int}/deactivate")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Deactivate(int id)
     {
         var result = await _subjectService.DeactivateAsync(id);

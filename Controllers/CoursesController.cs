@@ -26,8 +26,7 @@ public class CoursesController : ControllerBase
         var courses = await _courseService.GetAllAsync(includeInactive);
         return Ok(courses);
     }
-
-    // GET: /api/Courses/1
+ 
     [HttpGet("{id:int}")]
     [Authorize(Roles = "Admin,Teacher")]
     public async Task<IActionResult> GetById(int id)
@@ -47,7 +46,6 @@ public class CoursesController : ControllerBase
         return Ok(course);
     }
 
-    // POST: /api/Courses
     [HttpPost]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create(
@@ -77,7 +75,6 @@ public class CoursesController : ControllerBase
             course);
     }
 
-    // PUT: /api/Courses/1
     [HttpPut("{id:int}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update(
@@ -117,7 +114,6 @@ public class CoursesController : ControllerBase
         return Ok(course);
     }
 
-    // PATCH: /api/Courses/1/deactivate
     [HttpPatch("{id:int}/deactivate")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Deactivate(int id)

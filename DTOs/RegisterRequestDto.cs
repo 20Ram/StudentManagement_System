@@ -13,9 +13,9 @@ namespace CrudOperation.DTOs
     public string Roll {get; set;}  = string.Empty;
 
     public int? Age {get; set;}
-    public string? Course {get; set;}
+    public string Course {get; set;} = string.Empty;
     public double? Marks {get; set;}
-    public string? Department {get; set;} 
+    public string Department {get; set;} = string.Empty;
 
   }
 }

@@ -21,8 +21,7 @@ public class EnrollmentsController : ControllerBase
     }
 
     private string AdminEmail => User.FindFirstValue(ClaimTypes.Email) ?? "System";
-
-    // GET /api/Enrollments?classId=1&studentId=5&includeHistory=true
+ 
     [HttpGet]
     public async Task<IActionResult> GetAll(
         [FromQuery] int? classId,
@@ -56,10 +55,7 @@ public class EnrollmentsController : ControllerBase
 
         return Ok(list);
     }
-
-    // POST /api/Enrollments   { "studentId": 5, "classId": 2 }
-    // A student has ONE current class. Enrolling into a new class automatically
-    // closes the previous one (kept as history with IsCurrent = false).
+ 
     [HttpPost]
     public async Task<IActionResult> Enroll(EnrollStudentDto dto, CancellationToken ct)
     {
@@ -103,8 +99,7 @@ public class EnrollmentsController : ControllerBase
             };
             _db.StudentEnrollments.Add(enrollment);
         }
-
-        // Keeps the old free-text Student.Course column in sync so existing screens still work.
+ 
         student.Course = cls.Course.Name;
 
         _db.AuditLogs.Add(new AuditLog
@@ -118,8 +113,7 @@ public class EnrollmentsController : ControllerBase
 
         return Ok(new { message = "Student enrolled successfully.", enrollmentId = enrollment.Id });
     }
-
-    // DELETE /api/Enrollments/7   -> removes the student from the class (history is kept)
+ 
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Unenroll(int id, CancellationToken ct)
     {

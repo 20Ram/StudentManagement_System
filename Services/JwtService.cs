@@ -10,7 +10,7 @@ namespace CrudOperation.Service
   {
     private readonly IConfiguration _configuration;
 
-    public JwtService (IConfiguration configuration)
+    public JwtService(IConfiguration configuration)
     {
       _configuration = configuration;
     }
@@ -19,8 +19,14 @@ namespace CrudOperation.Service
     {
       var JwtSettings = _configuration.GetSection("JwtSettings");
       var secretKey = JwtSettings["SecretKey"];
-      var key =  new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
-      var credentials = new SigningCredentials(key,SecurityAlgorithms.HmacSha256);
+      if (string.IsNullOrWhiteSpace(secretKey))
+      {
+        throw new InvalidOperationException(
+            "JWT SecretKey is missing from configuration."
+        );
+      }
+      var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+      var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
       var claims = new List<Claim>
       {
@@ -37,7 +43,7 @@ namespace CrudOperation.Service
         expires: DateTime.Now.AddHours(1),
         signingCredentials: credentials
       );
-       return new JwtSecurityTokenHandler().WriteToken(token);
+      return new JwtSecurityTokenHandler().WriteToken(token);
     }
   }
 }

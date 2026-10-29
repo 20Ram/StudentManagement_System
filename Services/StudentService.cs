@@ -13,7 +13,7 @@ namespace CrudOperation.Service
             _context = context;
         }
 
-        public async Task<object> UpdateAsync(UpdateStudentDto dto,string email)
+        public async Task<object?> UpdateAsync(UpdateStudentDto dto,string email)
         {
             var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.Email == email);
@@ -176,7 +176,10 @@ namespace CrudOperation.Service
                            s.Name,
                            s.Email,
                            s.Age,
-                           s.Course,
+                           Course = _context.StudentEnrollments
+                                     .Where(e => e.StudentId == s.Id && e.IsCurrent)
+                                     .Select(e => e.Class.Course.Name)
+                                     .FirstOrDefault() ?? s.Course,
                            s.Marks
                          })
                          .ToListAsync();
