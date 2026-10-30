@@ -79,41 +79,77 @@ namespace CrudOperation.Controllers
       return Ok(students);
     }
 
+    // [HttpGet("student")]
+    // public async Task<IActionResult> GetStudent(string email)
+    // {
+    //   var student = await _context.Users
+    //       .Where(u => u.Email == email && u.Roll == "Student")
+    //       .Select(u => new
+    //       {
+    //         u.Id,
+    //         u.Name,
+    //         u.Email,
+    //         u.Roll
+    //       })
+    //       .FirstOrDefaultAsync();
+    //   var students = await _context.Students
+    //       .Where(s => s.Email == email)
+    //       .Select(s => new
+    //       {
+    //         s.Age,
+    //         s.Course,
+    //         s.Marks,
+    //       })
+    //       .FirstOrDefaultAsync();
+
+    //   if (!await _access.TeacherHasStudentAsync(CurrentUserId, data.StudentId))
+    //   {
+    //     return NotFound(new { message = "Student not found" });
+    //   }
+
+    //   if (student == null || students == null)
+    //   {
+    //     return NotFound(new
+    //     {
+    //       message = "Student not found"
+    //     });
+    //   }
+
+    //   return Ok(new
+    //   {
+    //     student,
+    //     students
+    //   });
+    // }
+
     [HttpGet("student")]
     public async Task<IActionResult> GetStudent(string email)
     {
-      var student = await _context.Users
-          .Where(u => u.Email == email && u.Roll == "Student")
-          .Select(u => new
-          {
-            u.Id,
-            u.Name,
-            u.Email,
-            u.Roll
-          })
-          .FirstOrDefaultAsync();
-      var students = await _context.Students
-          .Where(s => s.Email == email)
-          .Select(s => new
-          {
-            s.Age,
-            s.Course,
-            s.Marks,
-          })
-          .FirstOrDefaultAsync();
-      if (student == null || students == null)
-      {
-        return NotFound(new
+      var e = (email ?? "").Trim().ToLowerInvariant();
+
+
+      var studentId = await _context.Students
+        .AsNoTracking()
+        .Where(s => s.IsActive && s.User!.Email == e && s.User.Roll == "Student")
+        .Select(s => (int?)s.Id)
+        .FirstOrDefaultAsync();
+
+      if (studentId == null ||
+          !await _access.TeacherHasStudentAsync(CurrentUserId, studentId.Value))
+        return NotFound(new { message = "Student not found" });
+
+
+      var data = await _context.Students
+        .AsNoTracking()
+        .Where(s => s.Id == studentId.Value)
+        .Select(s => new
         {
-          message = "Student not found"
-        });
-      }
-      
-      return Ok(new
-      {
-        student,
-        students
-      });
+          student = new { s.User!.Id, s.User.Name, s.User.Email, s.User.Roll },
+          students = new { s.Age, s.Course, s.Marks }
+        })
+        .FirstOrDefaultAsync();
+
+      return Ok(data);
     }
 
     [HttpGet("teacher-profile")]
@@ -185,6 +221,11 @@ namespace CrudOperation.Controllers
         {
           message = "Student record not found"
         });
+      }
+
+      if (!await _access.TeacherHasStudentAsync(CurrentUserId, student.Id))
+      {
+        return NotFound(new { message = "Student not found" });
       }
 
       if (!string.IsNullOrWhiteSpace(dto.Name))
